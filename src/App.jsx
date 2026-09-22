@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,6 +12,7 @@ import {
   Heart,
   Hotel,
   Landmark,
+  LogOut,
   Map,
   MapPin,
   Menu,
@@ -35,6 +36,7 @@ import {
   X,
 } from 'lucide-react'
 import './App.css'
+import { supabase } from './lib/supabase'
 
 const destinationCards = [
   {
@@ -123,6 +125,23 @@ function formatMoney(value) {
   return new Intl.NumberFormat('vi-VN').format(value) + 'đ'
 }
 
+function mapDatabaseTrip(trip, index) {
+  const startDate = new Date(`${trip.start_date}T00:00:00`)
+  const endDate = new Date(`${trip.end_date}T00:00:00`)
+  const dayCount = Math.max(1, Math.round((endDate - startDate) / 86400000) + 1)
+  const dateLabel = `${startDate.toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })} – ${endDate.toLocaleDateString('vi-VN', { day: '2-digit', month: 'short', year: 'numeric' })}`
+
+  return {
+    id: trip.id,
+    city: trip.destination,
+    date: dateLabel,
+    days: dayCount,
+    budget: `${(Number(trip.budget) / 1000000).toFixed(1)} triệu`,
+    color: ['green', 'violet', 'orange'][index % 3],
+    emoji: ['✈️', '🌊', '🏝️'][index % 3],
+  }
+}
+
 function Logo({ onClick }) {
   return (
     <button className="brand" onClick={onClick} aria-label="Về trang chủ">
@@ -132,7 +151,7 @@ function Logo({ onClick }) {
   )
 }
 
-function Header({ page, goTo, onLogin }) {
+function Header({ page, goTo, onLogin, session, onLogout }) {
   const [open, setOpen] = useState(false)
   const navigate = (target) => {
     goTo(target)
@@ -149,7 +168,15 @@ function Header({ page, goTo, onLogin }) {
           <button className={page === 'trips' ? 'active' : ''} onClick={() => navigate('trips')}>Chuyến đi của tôi</button>
         </nav>
         <div className="nav-actions">
-          <button className="ghost-button desktop-only" onClick={onLogin}><UserRound size={17} /> Đăng nhập</button>
+          {session ? (
+            <button className="user-chip desktop-only" onClick={onLogout} title="Đăng xuất">
+              <span>{session.user.email?.slice(0, 1).toUpperCase()}</span>
+              <small>{session.user.email}</small>
+              <LogOut size={15} />
+            </button>
+          ) : (
+            <button className="ghost-button desktop-only" onClick={onLogin}><UserRound size={17} /> Đăng nhập</button>
+          )}
           <button className="primary-button compact desktop-only" onClick={() => navigate('create')}>Tạo chuyến đi <ArrowRight size={16} /></button>
           <button className="menu-button" onClick={() => setOpen(!open)} aria-label="Mở menu">
             {open ? <X /> : <Menu />}
@@ -438,14 +465,44 @@ function TripsPage({ trips, goTo }) {
 }
 
 function LoginModal({ onClose }) {
+  const [mode, setMode] = useState('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
   const [done, setDone] = useState(false)
+
+  const handleAuth = async (event) => {
+    event.preventDefault()
+    setLoading(true)
+    setMessage('')
+
+    const result = mode === 'login'
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password })
+
+    setLoading(false)
+    if (result.error) {
+      setMessage(result.error.message)
+      return
+    }
+
+    if (mode === 'register' && !result.data.session) {
+      setMessage('Đăng ký thành công. Hãy kiểm tra email để xác nhận tài khoản.')
+      return
+    }
+
+    setDone(true)
+  }
+
   return <div className="modal-backdrop" onMouseDown={onClose}><div className="login-modal" onMouseDown={(event) => event.stopPropagation()}>
     <button className="modal-close" onClick={onClose}><X size={19} /></button>
     <Logo onClick={() => {}} />
-    {done ? <div className="login-success"><span><Check /></span><h2>Chào mừng trở lại!</h2><p>Bạn đã đăng nhập vào tài khoản demo.</p><button className="primary-button" onClick={onClose}>Tiếp tục khám phá</button></div> : <>
-      <h2>Chào mừng trở lại</h2><p>Đăng nhập để tiếp tục hành trình của bạn.</p>
-      <form onSubmit={(event) => { event.preventDefault(); setDone(true) }}><label>Email<input type="email" required placeholder="ban@email.com" /></label><label>Mật khẩu<input type="password" required placeholder="••••••••" /></label><button className="primary-button" type="submit">Đăng nhập <ArrowRight size={17} /></button></form>
-      <small className="demo-note">Bản demo giao diện — chưa kết nối Supabase Auth.</small>
+    {done ? <div className="login-success"><span><Check /></span><h2>Chào mừng trở lại!</h2><p>Tài khoản Supabase của bạn đã được kết nối.</p><button className="primary-button" onClick={onClose}>Tiếp tục khám phá</button></div> : <>
+      <h2>{mode === 'login' ? 'Chào mừng trở lại' : 'Tạo tài khoản mới'}</h2><p>{mode === 'login' ? 'Đăng nhập để tiếp tục hành trình của bạn.' : 'Đăng ký để lưu những chuyến đi của riêng bạn.'}</p>
+      <div className="auth-tabs"><button className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setMessage('') }}>Đăng nhập</button><button className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setMessage('') }}>Đăng ký</button></div>
+      <form onSubmit={handleAuth}><label>Email<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ban@email.com" /></label><label>Mật khẩu<input type="password" minLength="6" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Tối thiểu 6 ký tự" /></label>{message && <p className="auth-message">{message}</p>}<button className="primary-button" type="submit" disabled={loading}>{loading ? <><RefreshCw className="spin" size={17} /> Đang xử lý...</> : <>{mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'} <ArrowRight size={17} /></>}</button></form>
+      <small className="demo-note">Tài khoản được bảo mật bởi Supabase Auth.</small>
     </>}
   </div></div>
 }
@@ -459,15 +516,38 @@ export default function App() {
   const [generating, setGenerating] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
+  const [session, setSession] = useState(null)
+  const [toast, setToast] = useState('')
   const [form, setForm] = useState({ destination: 'Đà Nẵng', startDate: '2026-10-20', endDate: '2026-10-23', budget: 5000000, travelWith: 'Cặp đôi', interests: ['Ẩm thực', 'Biển', 'Chụp ảnh'], style: 'Cân bằng' })
-  const [trips, setTrips] = useState(() => {
-    try {
-      const storedTrips = window.localStorage.getItem('may-trips')
-      return storedTrips ? JSON.parse(storedTrips) : starterTrips
-    } catch {
-      return starterTrips
+  const [trips, setTrips] = useState(starterTrips)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    if (!session) {
+      setTrips(starterTrips)
+      return
     }
-  })
+
+    let active = true
+    const loadTrips = async () => {
+      const { data, error } = await supabase.from('trips').select('*').order('created_at', { ascending: false })
+      if (!active) return
+      if (error) {
+        setToast('Chưa đọc được dữ liệu. Hãy chạy file supabase/schema.sql trong SQL Editor.')
+        return
+      }
+      setTrips(data.map(mapDatabaseTrip))
+    }
+    loadTrips()
+    return () => { active = false }
+  }, [session])
 
   const goTo = (target) => {
     setPage(target)
@@ -483,27 +563,52 @@ export default function App() {
     }, 1000)
   }
 
-  const tripExists = useMemo(() => trips.some((trip) => trip.city === form.destination), [trips, form.destination])
-  const handleSave = () => {
-    setSaved(true)
-    if (!tripExists) {
-      setTrips((current) => {
-        const nextTrips = [{ id: Date.now(), city: form.destination, date: '20–23 Thg 10, 2026', days: 3, budget: `${(form.budget / 1000000).toFixed(0)} triệu`, color: 'green', emoji: '✈️' }, ...current]
-        window.localStorage.setItem('may-trips', JSON.stringify(nextTrips))
-        return nextTrips
-      })
+  const handleSave = async () => {
+    if (!session) {
+      setToast('Hãy đăng nhập để lưu chuyến đi vào Supabase.')
+      setLoginOpen(true)
+      return
     }
+
+    const budgetPlan = Object.fromEntries(budgetItems.map((item) => [item.label, form.budget * (item.percent / 100)]))
+    const { data, error } = await supabase.from('trips').insert({
+      user_id: session.user.id,
+      destination: form.destination,
+      start_date: form.startDate,
+      end_date: form.endDate,
+      budget: form.budget,
+      travel_with: form.travelWith,
+      travel_style: form.style,
+      interests: form.interests,
+      itinerary,
+      budget_plan: budgetPlan,
+    }).select().single()
+
+    if (error) {
+      setToast('Không thể lưu chuyến đi. Hãy kiểm tra bảng trips và RLS trong Supabase.')
+      return
+    }
+
+    setSaved(true)
+    setTrips((current) => [mapDatabaseTrip(data, 0), ...current.filter((trip) => trip.id !== data.id)])
+    setToast('Đã lưu chuyến đi vào Supabase!')
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setToast('Bạn đã đăng xuất.')
   }
 
   return (
     <div className="app">
-      <Header page={page} goTo={goTo} onLogin={() => setLoginOpen(true)} />
+      <Header page={page} goTo={goTo} onLogin={() => setLoginOpen(true)} session={session} onLogout={handleLogout} />
       {page === 'home' && <HomePage goTo={goTo} form={form} setForm={setForm} />}
       {page === 'create' && <CreateTripPage form={form} setForm={setForm} onGenerate={handleGenerate} generating={generating} onBack={() => goTo('home')} />}
       {page === 'itinerary' && <ItineraryPage form={form} onSave={handleSave} saved={saved} />}
       {page === 'trips' && <TripsPage trips={trips} goTo={goTo} />}
       <Footer goTo={goTo} />
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      {toast && <button className="toast" onClick={() => setToast('')}><Check size={16} /> {toast}<X size={15} /></button>}
     </div>
   )
 }
