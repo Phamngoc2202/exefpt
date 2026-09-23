@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowRight, CalendarDays, Check, Compass, LogOut, MapPin, Menu, RefreshCw, UserRound, Users, WalletCards, X } from 'lucide-react'
 import './App.css'
 import { CreateTripPage, ItineraryPage, TripsPage } from './components/TripPages'
+import TravelCompass3D from './components/TravelCompass3D'
 import { destinationNames, northernDestinations } from './data/northernDestinations'
 import { destinationImages } from './data/destinationImages'
 import { addDays, countTripDays, createDefaultForm, generatePlan, planFromRow, toTripPayload, validateTripForm } from './lib/tripPlanner'
@@ -57,6 +58,7 @@ function HomePage({ goTo, form, setForm }) {
       </div>
       <div className="hero-visual">
         <div className="hero-image" role="img" aria-label="Dòng sông và núi đá vôi Ninh Bình lúc bình minh" />
+        <TravelCompass3D />
         <div className="hero-photo-label"><span>01 / 05 · HÌNH MINH HỌA</span><strong>Ninh Bình, Việt Nam</strong><small>Những khoảng lặng đáng đi xa</small></div>
       </div>
       <form className="quick-planner" onSubmit={(event) => { event.preventDefault(); goTo('create') }}>

@@ -460,6 +460,12 @@ footer { background: #132f25; color: white; padding: 38px 0; }
 .hero-photo-label span { color: #d9ecc8; font-size: 10px; letter-spacing: 1.6px; font-weight: 800; }
 .hero-photo-label strong { font-family: 'Manrope', sans-serif; font-size: 15px; }
 .hero-photo-label small { color: rgba(255,255,255,.78); font-size: 11px; }
+.travel-compass { position: absolute; z-index: 2; top: 23px; right: 24px; width: 146px; height: 172px; overflow: hidden; pointer-events: none; border: 1px solid rgba(255,255,255,.8); border-radius: 18px; background: rgba(250,252,244,.84); box-shadow: 0 13px 32px rgba(12,40,29,.2); backdrop-filter: blur(10px); }
+.travel-compass canvas { position: absolute; inset: 0 auto auto 0; display: block; width: 146px; height: 146px; }
+.travel-compass-north { position: absolute; z-index: 3; top: 8px; left: 50%; transform: translateX(-50%); color: #285b43; font-size: 10px; font-weight: 900; letter-spacing: 1px; }
+.travel-compass-fallback { position: absolute; top: 16px; left: 18px; width: 108px; height: 108px; display: grid; place-items: center; color: #295c45; border: 2px solid #d4b77b; border-radius: 50%; background: #eaf0e2; }
+.travel-compass.is-live .travel-compass-fallback { visibility: hidden; }
+.travel-compass-caption { position: absolute; z-index: 3; bottom: 10px; left: 0; width: 100%; color: #2d5944; font-size: 8px; font-weight: 900; letter-spacing: .8px; text-align: center; }
 .quick-planner { bottom: 35px; padding: 16px 18px; border-color: #e9e9df; border-radius: 20px; box-shadow: 0 21px 55px rgba(28,47,36,.12); }
 .quick-planner label > span { color: #7c867b; font-size: 11px; }
 .quick-planner input, .quick-planner select { font-size: 14px; }
@@ -533,6 +539,10 @@ footer { background: #132f25; color: white; padding: 38px 0; }
   .hero h1 { font-size: clamp(44px, 10vw, 61px); margin: 22px 0 15px; }
   .hero-visual { min-height: 410px; }
   .hero-image { inset: 0; border-radius: 22px 22px 88px 22px; }
+  .travel-compass { top: 15px; right: 15px; width: 112px; height: 134px; }
+  .travel-compass-fallback { top: 14px; left: 15px; width: 80px; height: 80px; }
+  .travel-compass-fallback svg { width: 46px; height: 46px; }
+  .travel-compass-caption { bottom: 8px; font-size: 7px; letter-spacing: .4px; }
   .quick-planner { bottom: auto; padding: 15px; margin-top: 0; }
   .section { padding-top: 68px; padding-bottom: 75px; }
   .destination-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
