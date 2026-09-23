@@ -1,4 +1,4 @@
-# Mây AI Travel Planner
+# TripGenie
 
 Giao diện MVP cho ứng dụng lập lịch trình du lịch bằng AI, xây dựng bằng React và Vite.
 

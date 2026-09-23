@@ -5,9 +5,8 @@
 .site-header { height: 76px; position: sticky; top: 0; z-index: 50; background: rgba(251,250,246,.9); backdrop-filter: blur(18px); border-bottom: 1px solid rgba(222,224,215,.7); }
 .nav-shell { width: min(1220px, calc(100% - 40px)); height: 100%; margin: auto; display: flex; align-items: center; justify-content: space-between; }
 .brand { border: 0; background: none; padding: 0; display: flex; align-items: center; gap: 9px; font-family: 'Manrope', sans-serif; font-size: 24px; font-weight: 800; cursor: pointer; letter-spacing: -.8px; }
-.brand-mark { width: 34px; height: 34px; border-radius: 50% 50% 50% 12px; display: grid; place-items: center; transform: rotate(-6deg); color: white; background: var(--green); }
-.brand-mark svg { transform: rotate(6deg); }
-.brand-dot { color: #e98455; }
+.brand-mark { width: 42px; height: 42px; border-radius: 12px; display: block; position: relative; overflow: hidden; flex: none; background: var(--green); }
+.brand-mark img { position: absolute; top: 0; left: -20%; width: 140%; max-width: none; height: auto; }
 .nav-links { display: flex; align-items: center; gap: 8px; }
 .nav-links button, .footer-links button { border: 0; background: none; cursor: pointer; color: #68716b; font-weight: 600; padding: 12px 16px; border-radius: 50px; }
 .nav-links button:hover, .nav-links button.active { color: var(--ink); background: #f0f0e9; }
@@ -296,7 +295,7 @@ footer { background: #132f25; color: white; padding: 38px 0; }
 .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 30px; }
 .footer-inner > div:first-child p { margin: 8px 0 0; color: rgba(255,255,255,.54); font-size: 12px; }
 .footer-inner .brand { color: white; }
-.footer-inner .brand-mark { background: var(--lime); color: var(--green); }
+.footer-inner .brand-mark { background: var(--green); }
 .footer-links { display: flex; }
 .footer-links button { color: rgba(255,255,255,.68); }
 .footer-inner > span { color: rgba(255,255,255,.45); font-size: 11px; }

@@ -37,6 +37,7 @@ import {
 } from 'lucide-react'
 import './App.css'
 import { supabase } from './lib/supabase'
+import tripGenieLogo from './logo/ChatGPT Image 14_47_22 23 thg 9, 2026.png'
 
 const destinationCards = [
   {
@@ -144,9 +145,9 @@ function mapDatabaseTrip(trip, index) {
 
 function Logo({ onClick }) {
   return (
-    <button className="brand" onClick={onClick} aria-label="Về trang chủ">
-      <span className="brand-mark"><Navigation size={18} strokeWidth={2.5} /></span>
-      <span>Mây<span className="brand-dot">.</span></span>
+    <button className="brand" onClick={onClick} aria-label="TripGenie — về trang chủ">
+      <span className="brand-mark"><img src={tripGenieLogo} alt="" /></span>
+      <span>TripGenie</span>
     </button>
   )
 }
@@ -199,7 +200,7 @@ function HomePage({ goTo, form, setForm }) {
         <div className="hero-copy">
           <span className="eyebrow"><Sparkles size={15} /> Du lịch thông minh cùng AI</span>
           <h1>Đi xa hơn.<br /><em>Lên kế hoạch nhẹ hơn.</em></h1>
-          <p>Mây biến những điều bạn yêu thích thành một hành trình trọn vẹn — lịch trình, chi phí và những trải nghiệm đáng nhớ.</p>
+          <p>TripGenie biến những điều bạn yêu thích thành một hành trình trọn vẹn — lịch trình, chi phí và những trải nghiệm đáng nhớ.</p>
           <div className="trust-row">
             <div className="avatar-stack">
               <span>HN</span><span>TL</span><span>AN</span>
@@ -267,8 +268,8 @@ function HomePage({ goTo, form, setForm }) {
           <div className="center-heading"><span className="section-kicker">Đơn giản & cá nhân hóa</span><h2>Ba bước cho một chuyến đi tuyệt vời</h2></div>
           <div className="steps-grid">
             {[
-              [<MapPin key="pin" />, '01', 'Kể Mây nghe', 'Chọn nơi đến, ngân sách và những điều khiến bạn hào hứng.'],
-              [<Sparkles key="sparkles" />, '02', 'AI lên kế hoạch', 'Mây thiết kế lịch trình tối ưu theo sở thích riêng của bạn.'],
+              [<MapPin key="pin" />, '01', 'Kể TripGenie nghe', 'Chọn nơi đến, ngân sách và những điều khiến bạn hào hứng.'],
+              [<Sparkles key="sparkles" />, '02', 'AI lên kế hoạch', 'TripGenie thiết kế lịch trình tối ưu theo sở thích riêng của bạn.'],
               [<Plane key="plane" />, '03', 'Xách ba lô lên', 'Tinh chỉnh, lưu lại và tận hưởng từng khoảnh khắc.'],
             ].map(([icon, no, title, description]) => (
               <div className="step-card" key={no}>
@@ -300,11 +301,11 @@ function CreateTripPage({ form, setForm, onGenerate, generating, onBack }) {
         <aside className="create-intro">
           <span className="eyebrow light"><Sparkles size={15} /> AI Trip Designer</span>
           <h1>Hành trình của bạn bắt đầu từ đây.</h1>
-          <p>Cho Mây biết một chút về chuyến đi. Càng chi tiết, lịch trình càng đúng với bạn.</p>
+          <p>Cho TripGenie biết một chút về chuyến đi. Càng chi tiết, lịch trình càng đúng với bạn.</p>
           <div className="progress-list">
             <div className="done"><span><Check size={15} /></span><div><strong>Thông tin cơ bản</strong><small>Điểm đến & thời gian</small></div></div>
             <div className="current"><span>2</span><div><strong>Sở thích cá nhân</strong><small>Gu du lịch của bạn</small></div></div>
-            <div><span>3</span><div><strong>Để Mây lo</strong><small>Tạo lịch trình bằng AI</small></div></div>
+            <div><span>3</span><div><strong>Để TripGenie lo</strong><small>Tạo lịch trình bằng AI</small></div></div>
           </div>
           <div className="quote-card"><Sparkles size={19} /><p>“Mỗi chuyến đi nên mang một câu chuyện của riêng bạn.”</p></div>
         </aside>
@@ -338,7 +339,7 @@ function CreateTripPage({ form, setForm, onGenerate, generating, onBack }) {
           </div></div>
 
           <button className="generate-button" onClick={onGenerate} disabled={generating || !form.destination}>
-            {generating ? <><RefreshCw className="spin" size={19} /> Mây đang thiết kế hành trình...</> : <><Sparkles size={19} /> Tạo lịch trình với AI <ArrowRight size={18} /></>}
+            {generating ? <><RefreshCw className="spin" size={19} /> TripGenie đang thiết kế hành trình...</> : <><Sparkles size={19} /> Tạo lịch trình với AI <ArrowRight size={18} /></>}
           </button>
           <p className="form-note"><Sparkles size={13} /> AI sẽ mất khoảng vài giây để tạo lịch trình phù hợp nhất.</p>
         </section>
@@ -388,12 +389,12 @@ function ChatPanel() {
 
   return (
     <section className="chat-card">
-      <div className="chat-header"><span className="bot-avatar"><Bot size={19} /></span><div><strong>Trợ lý Mây</strong><small><span /> Luôn sẵn sàng</small></div><button className="icon-button"><ChevronDown size={17} /></button></div>
+      <div className="chat-header"><span className="bot-avatar"><Bot size={19} /></span><div><strong>Trợ lý TripGenie</strong><small><span /> Luôn sẵn sàng</small></div><button className="icon-button"><ChevronDown size={17} /></button></div>
       <div className="chat-body">
         {messages.map((item, index) => <div className={`chat-bubble ${item.role}`} key={`${item.role}-${index}`}>{item.text}</div>)}
       </div>
       <div className="suggestion-row"><button onClick={() => setMessage('Gợi ý quán ăn gần biển')}>🍜 Quán ăn gần đây</button><button onClick={() => setMessage('Có điểm nào thay thế không?')}>✨ Đổi địa điểm</button></div>
-      <form className="chat-input" onSubmit={sendMessage}><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Hỏi Mây về chuyến đi..." /><button aria-label="Gửi tin nhắn"><Send size={17} /></button></form>
+      <form className="chat-input" onSubmit={sendMessage}><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Hỏi TripGenie về chuyến đi..." /><button aria-label="Gửi tin nhắn"><Send size={17} /></button></form>
     </section>
   )
 }
@@ -407,7 +408,7 @@ function ItineraryPage({ form, onSave, saved }) {
     <main className="itinerary-page inner-page">
       <section className="trip-banner">
         <div className="page-shell banner-inner">
-          <div><span className="eyebrow light"><Sparkles size={14} /> Được thiết kế bởi Mây AI</span><h1>{form.destination || 'Đà Nẵng'} — hành trình của riêng bạn</h1><p><CalendarDays size={16} /> 20–23 tháng 10, 2026 <span /> <Users size={16} /> {form.travelWith} <span /> <WalletCards size={16} /> {formatMoney(form.budget)}</p></div>
+          <div><span className="eyebrow light"><Sparkles size={14} /> Được thiết kế bởi TripGenie AI</span><h1>{form.destination || 'Đà Nẵng'} — hành trình của riêng bạn</h1><p><CalendarDays size={16} /> 20–23 tháng 10, 2026 <span /> <Users size={16} /> {form.travelWith} <span /> <WalletCards size={16} /> {formatMoney(form.budget)}</p></div>
           <div className="banner-actions"><button className="secondary-button"><RefreshCw size={17} /> Tạo lại</button><button className={saved ? 'primary-button saved' : 'primary-button'} onClick={onSave}>{saved ? <Check size={17} /> : <Save size={17} />}{saved ? 'Đã lưu' : 'Lưu chuyến đi'}</button></div>
         </div>
       </section>
@@ -436,7 +437,7 @@ function ItineraryPage({ form, onSave, saved }) {
 
         <aside className="itinerary-side">
           <BudgetPanel budget={form.budget || 5000000} />
-          {assistantOpen ? <ChatPanel /> : <button className="open-assistant" onClick={() => setAssistantOpen(true)}><MessageCircle /> Mở trợ lý Mây</button>}
+          {assistantOpen ? <ChatPanel /> : <button className="open-assistant" onClick={() => setAssistantOpen(true)}><MessageCircle /> Mở trợ lý TripGenie</button>}
           {assistantOpen && <button className="close-chat" onClick={() => setAssistantOpen(false)}>Ẩn trợ lý</button>}
         </aside>
       </div>
@@ -508,7 +509,7 @@ function LoginModal({ onClose }) {
 }
 
 function Footer({ goTo }) {
-  return <footer><div className="page-shell footer-inner"><div><Logo onClick={() => goTo('home')} /><p>Biến cảm hứng thành hành trình.</p></div><div className="footer-links"><button onClick={() => goTo('home')}>Khám phá</button><button onClick={() => goTo('create')}>Lên kế hoạch</button><button onClick={() => goTo('trips')}>Chuyến đi</button></div><span>© 2026 Mây AI Travel Planner</span></div></footer>
+  return <footer><div className="page-shell footer-inner"><div><Logo onClick={() => goTo('home')} /><p>Biến cảm hứng thành hành trình.</p></div><div className="footer-links"><button onClick={() => goTo('home')}>Khám phá</button><button onClick={() => goTo('create')}>Lên kế hoạch</button><button onClick={() => goTo('trips')}>Chuyến đi</button></div><span>© 2026 TripGenie</span></div></footer>
 }
 
 export default function App() {
