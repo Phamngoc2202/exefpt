@@ -64,6 +64,7 @@ const destinationCards = [
 ]
 
 const interestOptions = ['Ẩm thực', 'Biển', 'Văn hóa', 'Chụp ảnh', 'Mua sắm', 'Thiên nhiên']
+const protectedPages = new Set(['create', 'itinerary', 'trips'])
 
 const itinerary = [
   {
@@ -124,6 +125,14 @@ const activityIcons = {
 
 function formatMoney(value) {
   return new Intl.NumberFormat('vi-VN').format(value) + 'đ'
+}
+
+function validateTripForm(form) {
+  if (!form.destination.trim()) return 'Vui lòng nhập điểm đến.'
+  if (!form.startDate || !form.endDate) return 'Vui lòng chọn ngày bắt đầu và ngày kết thúc.'
+  if (form.endDate < form.startDate) return 'Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.'
+  if (!Number.isFinite(form.budget) || form.budget <= 0) return 'Ngân sách phải lớn hơn 0.'
+  return ''
 }
 
 function mapDatabaseTrip(trip, index) {
@@ -284,7 +293,7 @@ function HomePage({ goTo, form, setForm }) {
   )
 }
 
-function CreateTripPage({ form, setForm, onGenerate, generating, onBack }) {
+function CreateTripPage({ form, setForm, onGenerate, generating, formError, onBack }) {
   const toggleInterest = (interest) => {
     setForm((current) => ({
       ...current,
@@ -338,7 +347,8 @@ function CreateTripPage({ form, setForm, onGenerate, generating, onBack }) {
             ].map(([title, description, price]) => <button type="button" onClick={() => setForm({ ...form, style: title })} className={form.style === title ? 'style-option active' : 'style-option'} key={title}><span className="radio-dot" /><div><strong>{title}</strong><small>{description}</small></div><b>{price}</b></button>)}
           </div></div>
 
-          <button className="generate-button" onClick={onGenerate} disabled={generating || !form.destination}>
+          {formError && <p className="form-error" role="alert">{formError}</p>}
+          <button className="generate-button" onClick={onGenerate} disabled={generating}>
             {generating ? <><RefreshCw className="spin" size={19} /> TripGenie đang thiết kế hành trình...</> : <><Sparkles size={19} /> Tạo lịch trình với AI <ArrowRight size={18} /></>}
           </button>
           <p className="form-note"><Sparkles size={13} /> AI sẽ mất khoảng vài giây để tạo lịch trình phù hợp nhất.</p>
@@ -465,8 +475,8 @@ function TripsPage({ trips, goTo }) {
   )
 }
 
-function LoginModal({ onClose }) {
-  const [mode, setMode] = useState('login')
+function LoginModal({ onClose, initialMode = 'login' }) {
+  const [mode, setMode] = useState(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -500,7 +510,7 @@ function LoginModal({ onClose }) {
     <button className="modal-close" onClick={onClose}><X size={19} /></button>
     <Logo onClick={() => {}} />
     {done ? <div className="login-success"><span><Check /></span><h2>Chào mừng trở lại!</h2><p>Tài khoản Supabase của bạn đã được kết nối.</p><button className="primary-button" onClick={onClose}>Tiếp tục khám phá</button></div> : <>
-      <h2>{mode === 'login' ? 'Chào mừng trở lại' : 'Tạo tài khoản mới'}</h2><p>{mode === 'login' ? 'Đăng nhập để tiếp tục hành trình của bạn.' : 'Đăng ký để lưu những chuyến đi của riêng bạn.'}</p>
+      <h2>{mode === 'login' ? 'Chào mừng trở lại' : 'Tạo tài khoản mới'}</h2><p>{mode === 'login' ? 'Đăng nhập để tiếp tục hành trình của bạn.' : 'Đăng ký để tạo và lưu những chuyến đi của riêng bạn.'}</p>
       <div className="auth-tabs"><button className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setMessage('') }}>Đăng nhập</button><button className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setMessage('') }}>Đăng ký</button></div>
       <form onSubmit={handleAuth}><label>Email<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ban@email.com" /></label><label>Mật khẩu<input type="password" minLength="6" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Tối thiểu 6 ký tự" /></label>{message && <p className="auth-message">{message}</p>}<button className="primary-button" type="submit" disabled={loading}>{loading ? <><RefreshCw className="spin" size={17} /> Đang xử lý...</> : <>{mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'} <ArrowRight size={17} /></>}</button></form>
       <small className="demo-note">Tài khoản được bảo mật bởi Supabase Auth.</small>
@@ -515,8 +525,11 @@ function Footer({ goTo }) {
 export default function App() {
   const [page, setPage] = useState('home')
   const [generating, setGenerating] = useState(false)
+  const [formError, setFormError] = useState('')
   const [saved, setSaved] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
+  const [authMode, setAuthMode] = useState('login')
+  const [pendingPage, setPendingPage] = useState(null)
   const [session, setSession] = useState(null)
   const [toast, setToast] = useState('')
   const [form, setForm] = useState({ destination: 'Đà Nẵng', startDate: '2026-10-20', endDate: '2026-10-23', budget: 5000000, travelWith: 'Cặp đôi', interests: ['Ẩm thực', 'Biển', 'Chụp ảnh'], style: 'Cân bằng' })
@@ -526,6 +539,7 @@ export default function App() {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession)
+      if (!nextSession) setPage('home')
     })
     return () => subscription.unsubscribe()
   }, [])
@@ -550,12 +564,47 @@ export default function App() {
     return () => { active = false }
   }, [session])
 
-  const goTo = (target) => {
+  useEffect(() => {
+    if (session && pendingPage) {
+      setPage(pendingPage)
+      setPendingPage(null)
+      setLoginOpen(false)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [session, pendingPage])
+
+  const openRegistrationFor = (target) => {
+    setPendingPage(target)
+    setAuthMode('register')
+    setLoginOpen(true)
+  }
+
+  const goTo = async (target) => {
+    if (protectedPages.has(target)) {
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) {
+        openRegistrationFor(target)
+        return
+      }
+    }
     setPage(target)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleGenerate = () => {
+  const updateForm = (nextForm) => {
+    setForm(nextForm)
+    setFormError('')
+  }
+
+  const handleGenerate = async () => {
+    const { data } = await supabase.auth.getSession()
+    if (!data.session) {
+      openRegistrationFor('create')
+      return
+    }
+    const error = validateTripForm(form)
+    setFormError(error)
+    if (error) return
     setGenerating(true)
     window.setTimeout(() => {
       setGenerating(false)
@@ -566,8 +615,8 @@ export default function App() {
 
   const handleSave = async () => {
     if (!session) {
-      setToast('Hãy đăng nhập để lưu chuyến đi vào Supabase.')
-      setLoginOpen(true)
+      setToast('Hãy đăng ký hoặc đăng nhập để lưu chuyến đi.')
+      openRegistrationFor('itinerary')
       return
     }
 
@@ -597,18 +646,30 @@ export default function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
+    setPage('home')
     setToast('Bạn đã đăng xuất.')
+  }
+
+  const openLogin = () => {
+    setPendingPage(null)
+    setAuthMode('login')
+    setLoginOpen(true)
+  }
+
+  const closeLogin = () => {
+    setPendingPage(null)
+    setLoginOpen(false)
   }
 
   return (
     <div className="app">
-      <Header page={page} goTo={goTo} onLogin={() => setLoginOpen(true)} session={session} onLogout={handleLogout} />
-      {page === 'home' && <HomePage goTo={goTo} form={form} setForm={setForm} />}
-      {page === 'create' && <CreateTripPage form={form} setForm={setForm} onGenerate={handleGenerate} generating={generating} onBack={() => goTo('home')} />}
+      <Header page={page} goTo={goTo} onLogin={openLogin} session={session} onLogout={handleLogout} />
+      {page === 'home' && <HomePage goTo={goTo} form={form} setForm={updateForm} />}
+      {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} generating={generating} formError={formError} onBack={() => goTo('home')} />}
       {page === 'itinerary' && <ItineraryPage form={form} onSave={handleSave} saved={saved} />}
       {page === 'trips' && <TripsPage trips={trips} goTo={goTo} />}
       <Footer goTo={goTo} />
-      {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      {loginOpen && <LoginModal onClose={closeLogin} initialMode={authMode} />}
       {toast && <button className="toast" onClick={() => setToast('')}><Check size={16} /> {toast}<X size={15} /></button>}
     </div>
   )
