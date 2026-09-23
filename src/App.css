@@ -374,3 +374,58 @@ footer { background: #132f25; color: white; padding: 38px 0; }
   .budget-summary { grid-template-columns: 110px 1fr; }
   .footer-links { flex-wrap: wrap; justify-content: center; }
 }
+
+/* Northern Vietnam planner: editable itinerary and computed costs. */
+.home-honesty { display: flex; align-items: center; gap: 9px; margin-top: 29px; color: var(--green); font-size: 13px; font-weight: 700; }
+.home-honesty svg { flex: none; }
+.weather-card { max-width: 320px; }
+.weather-card small { line-height: 1.35; }
+.destination-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.destination-card { height: 320px; }
+.destination-card-art { position: absolute; inset: 0; display: grid; place-items: center; font-size: 110px; transform: translateY(-25px); filter: drop-shadow(0 18px 26px rgba(0,0,0,.16)); transition: transform .3s; }
+.destination-card:hover .destination-card-art { transform: translateY(-32px) scale(1.06); }
+.destination-content { right: 65px; }
+.destination-content span { line-height: 1.4; }
+.input-wrap select { flex: 1; min-width: 0; border: 0; outline: none; color: var(--ink); background: transparent; }
+.form-helper { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.day-tabs { display: flex; overflow-x: auto; scrollbar-width: thin; }
+.day-tabs button { flex: 1 0 110px; }
+.budget-totals { border-top: 1px solid var(--line); margin-top: 9px; padding: 15px 4px 2px; display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+.budget-totals span { color: var(--muted); }
+.budget-totals strong { white-space: nowrap; }
+.budget-safe.over-budget { background: #fff0e8; color: #ae4f2b; }
+.budget-safe.over-budget small { color: #a5684e; }
+.estimate-note { color: var(--muted); font-size: 11px; line-height: 1.5; margin: 12px 0 0; }
+.plan-disclaimer { background: #fff8e9; border: 1px solid #f0e4c7; border-radius: 15px; padding: 18px; margin-top: 15px; color: #614a20; }
+.plan-disclaimer strong { font-size: 13px; }
+.plan-disclaimer p { font-size: 11px; line-height: 1.6; margin: 7px 0 9px; }
+.plan-disclaimer a { color: var(--green); font-size: 11px; font-weight: 800; }
+.activity-editor { margin-top: 15px; padding: 15px; border: 1px solid #dbe3d8; background: #fbfdf8; border-radius: 12px; display: grid; gap: 10px; }
+.activity-editor label { display: grid; gap: 5px; color: var(--muted); font-size: 10px; font-weight: 700; }
+.activity-editor input, .activity-editor select { width: 100%; min-width: 0; height: 37px; border: 1px solid #dbe2da; border-radius: 8px; background: white; padding: 0 9px; color: var(--ink); font-size: 12px; }
+.activity-editor-row { display: grid; grid-template-columns: .75fr 1fr 1.25fr; gap: 7px; }
+.activity-editor-actions { display: flex; justify-content: space-between; gap: 8px; }
+.activity-editor-actions button { white-space: nowrap; }
+.add-activity-bottom { margin-top: 18px; }
+.primary-button:disabled { opacity: .65; transform: none; box-shadow: none; cursor: not-allowed; }
+.trip-cost-line { color: var(--green); font-size: 12px; font-weight: 800; margin: 14px 0 0; }
+.trip-art button { cursor: pointer; }
+.trip-art button:disabled { opacity: .5; cursor: wait; }
+.empty-trips { min-height: 320px; background: white; border: 1px dashed #cbd0c7; border-radius: 19px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 25px; text-align: center; }
+.empty-trips > svg { color: var(--green); }
+.empty-trips h2 { margin: 15px 0 5px; }
+.empty-trips p { color: var(--muted); font-size: 13px; margin: 0 0 19px; }
+@media (max-width: 760px) {
+  .destination-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .destination-card { height: 270px; }
+  .timeline-title .secondary-button { display: inline-flex; }
+}
+@media (max-width: 520px) {
+  .destination-grid { grid-template-columns: 1fr; }
+  .destination-card { height: 290px; }
+  .activity-editor-row { grid-template-columns: 1fr 1fr; }
+  .activity-editor-row label:last-child { grid-column: 1 / -1; }
+  .timeline-title { flex-wrap: wrap; gap: 13px; }
+  .timeline-title .secondary-button { width: 100%; }
+  .weather-card { max-width: 240px; }
+}
