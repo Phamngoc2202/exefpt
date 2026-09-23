@@ -5,6 +5,7 @@ import {
   Ticket, TrainFront, Trash2, Users, Utensils, WalletCards, X,
 } from 'lucide-react'
 import { destinationNames, findDestination } from '../data/northernDestinations'
+import { destinationImages } from '../data/destinationImages'
 import { COST_CATEGORIES, MAX_TRIP_DAYS, addDays, countTripDays, formatTripDate, summarizePlan } from '../lib/tripPlanner'
 
 const interestOptions = ['Ẩm thực', 'Thiên nhiên', 'Văn hóa', 'Chụp ảnh', 'Biển', 'Mua sắm']
@@ -148,7 +149,7 @@ export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpd
 
   return (
     <main className="itinerary-page inner-page">
-      <section className="trip-banner"><div className="page-shell banner-inner">
+      <section className="trip-banner" style={{ backgroundImage: 'linear-gradient(90deg, rgba(11,38,30,.94), rgba(12,42,34,.78) 57%, rgba(12,42,34,.4)), url(' + (destinationImages[plan.form.destination] || destinationImages['Ninh Bình']) + ')' }}><div className="page-shell banner-inner">
         <div><span className="eyebrow light"><Compass size={14} /> Kế hoạch gợi ý · miền Bắc</span><h1>{plan.form.destination} — hành trình của bạn</h1><p><CalendarDays size={16} /> {dateLabel} <span /> <Users size={16} /> {plan.form.travelers} người <span /> <WalletCards size={16} /> Ngân sách {formatMoney(plan.form.budget)}</p></div>
         <div className="banner-actions"><button className="secondary-button" onClick={onRegenerate}><RefreshCw size={17} /> Tạo lại</button><button className={saved ? 'primary-button saved' : 'primary-button'} onClick={onSave} disabled={saved || saving}>{saved ? <Check size={17} /> : <Save size={17} />}{saving ? 'Đang lưu...' : saved ? 'Đã lưu' : plan.id ? 'Lưu thay đổi' : 'Lưu chuyến đi'}</button></div>
       </div></section>
@@ -190,7 +191,7 @@ export function TripsPage({ trips, goTo, onOpen, onDelete, deletingId }) {
           const destination = findDestination(trip.form.destination)
           const summary = summarizePlan(trip)
           return <article className="saved-trip-card" key={trip.id}>
-            <div className="trip-art" style={{ background: destination?.color || 'linear-gradient(135deg,#36755c,#85b183)' }}><span>{destination?.emoji || '🧭'}</span><button onClick={() => onDelete(trip)} disabled={deletingId === trip.id} aria-label={`Xóa chuyến đi ${trip.form.destination}`} title="Xóa chuyến đi"><Trash2 size={16} /></button><small>{summary.overBudget ? 'Vượt ngân sách' : 'Đã lên kế hoạch'}</small></div>
+            <div className="trip-art" style={{ backgroundImage: destinationImages[trip.form.destination] ? 'linear-gradient(180deg, transparent, rgba(6,34,27,.32)), url(' + destinationImages[trip.form.destination] + ')' : destination?.color || 'linear-gradient(135deg,#36755c,#85b183)' }}><button onClick={() => onDelete(trip)} disabled={deletingId === trip.id} aria-label={'Xóa chuyến đi ' + trip.form.destination} title="Xóa chuyến đi"><Trash2 size={16} /></button><small>{summary.overBudget ? 'Vượt ngân sách' : 'Đã lên kế hoạch'}</small></div>
             <div className="trip-card-body"><span className="trip-date"><CalendarDays size={14} /> {formatTripDate(trip.form.startDate)} – {formatTripDate(trip.form.endDate)}</span><h2>{trip.form.destination}</h2><div className="trip-meta"><span><Clock3 size={14} /> {countTripDays(trip.form.startDate, trip.form.endDate)} ngày</span><span><Users size={14} /> {trip.form.travelers} người</span></div><p className="trip-cost-line">Dự kiến {formatMoney(summary.total)} / {formatMoney(trip.form.budget)}</p><button onClick={() => onOpen(trip)}>Xem hành trình <ArrowRight size={16} /></button></div>
           </article>
         })}

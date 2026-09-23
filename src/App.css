@@ -46,7 +46,7 @@
 .trust-row small { color: var(--muted); font-size: 12px; }
 .rating { display: flex; align-items: center; gap: 5px; color: #d48b1d; font-weight: 800; margin-left: 6px; border-left: 1px solid var(--line); padding-left: 17px; }
 .hero-visual { min-height: 470px; position: relative; }
-.hero-image { position: absolute; inset: 0 8px 0 28px; border-radius: 170px 22px 170px 22px; background: linear-gradient(180deg, transparent 55%, rgba(6,39,30,.34)), url('https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1400&q=90') center/cover; box-shadow: 0 28px 60px rgba(49,67,59,.18); }
+.hero-image { position: absolute; inset: 0 8px 0 28px; border-radius: 170px 22px 170px 22px; background: linear-gradient(180deg, transparent 55%, rgba(6,39,30,.34)), url('./assets/destinations/hero-ninh-binh.jpg') center/cover; box-shadow: 0 28px 60px rgba(49,67,59,.18); }
 .hero-visual::after { content: ''; position: absolute; right: -14px; top: -18px; width: 92px; height: 92px; border: 2px solid #d7d8cc; border-radius: 50%; z-index: -1; }
 .floating-card { position: absolute; z-index: 2; display: flex; align-items: center; gap: 11px; background: rgba(255,255,255,.94); backdrop-filter: blur(12px); padding: 12px 15px; border-radius: 15px; box-shadow: 0 14px 30px rgba(31,49,41,.17); }
 .floating-card div { display: grid; gap: 1px; }
@@ -428,4 +428,130 @@ footer { background: #132f25; color: white; padding: 38px 0; }
   .timeline-title { flex-wrap: wrap; gap: 13px; }
   .timeline-title .secondary-button { width: 100%; }
   .weather-card { max-width: 240px; }
+}
+
+/* TripGenie visual refresh — an editorial, photo-first direction. */
+.app { background: #faf8f3; }
+.site-header { background: rgba(250,248,243,.94); border-bottom-color: #e8e5db; }
+.brand { letter-spacing: -1.1px; }
+.nav-links { padding: 4px; background: #f0efe9; border-radius: 999px; }
+.nav-links button { padding: 10px 17px; }
+.nav-links button.active { background: #fff; box-shadow: 0 2px 8px rgba(27,48,37,.08); }
+.primary-button, .generate-button { border-radius: 13px; background: #204e3e; }
+.primary-button:hover, .generate-button:hover { background: #123a2c; }
+
+.hero { min-height: 730px; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 54px; padding-top: 58px; padding-bottom: 158px; }
+.hero::before { width: 580px; height: 580px; left: -360px; top: 0; background: radial-gradient(circle, rgba(222,229,195,.43), transparent 68%); }
+.hero-copy { padding-bottom: 22px; }
+.hero .eyebrow { background: #e9eee0; color: #2a5f4a; font-size: 11px; letter-spacing: 1.8px; padding: 10px 14px; }
+.hero h1 { font-size: clamp(58px, 6.3vw, 88px); line-height: 1.02; letter-spacing: -5.5px; margin: 30px 0 22px; }
+.hero h1 em { display: inline-block; font-size: 1.03em; letter-spacing: -4.5px; color: #2e6550; }
+.hero-copy > p { max-width: 485px; font-size: 17px; line-height: 1.8; }
+.hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 24px; margin-top: 31px; }
+.hero-actions .primary-button { padding: 16px 21px; font-size: 14px; }
+.hero-explore { color: #285640; display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 800; text-decoration: none; border-bottom: 1px solid #9aac9b; padding: 4px 0; }
+.hero-explore:hover { color: #133a2b; border-color: currentColor; }
+.home-honesty { margin-top: 34px; color: #737e70; font-size: 11px; font-weight: 600; }
+.home-honesty svg { color: #668c6d; }
+.hero-visual { min-height: 510px; }
+.hero-image { inset: 0; background: linear-gradient(180deg, rgba(14,36,28,0) 50%, rgba(10,39,30,.32)), url('./assets/destinations/hero-ninh-binh.jpg') center/cover; border-radius: 32px 32px 126px 32px; box-shadow: 0 28px 58px rgba(24,48,35,.16); }
+.hero-visual::after { right: -18px; top: -18px; width: 120px; height: 120px; border-color: #d2d7c7; }
+.hero-photo-label { position: absolute; z-index: 2; bottom: 24px; left: 25px; right: 25px; width: max-content; max-width: calc(100% - 50px); display: grid; gap: 3px; padding: 13px 17px; color: #fff; background: rgba(19,51,39,.73); border: 1px solid rgba(255,255,255,.2); border-radius: 13px; backdrop-filter: blur(12px); }
+.hero-photo-label span { color: #d9ecc8; font-size: 10px; letter-spacing: 1.6px; font-weight: 800; }
+.hero-photo-label strong { font-family: 'Manrope', sans-serif; font-size: 15px; }
+.hero-photo-label small { color: rgba(255,255,255,.78); font-size: 11px; }
+.quick-planner { bottom: 35px; padding: 16px 18px; border-color: #e9e9df; border-radius: 20px; box-shadow: 0 21px 55px rgba(28,47,36,.12); }
+.quick-planner label > span { color: #7c867b; font-size: 11px; }
+.quick-planner input, .quick-planner select { font-size: 14px; }
+.search-button { min-width: 185px; }
+
+.section { padding-top: 88px; padding-bottom: 110px; }
+.section-kicker { color: #477b5c; }
+.section-heading { margin-bottom: 34px; }
+.section-heading h2, .center-heading h2 { font-size: clamp(32px, 4.5vw, 50px); letter-spacing: -2.7px; }
+.section-heading p { color: #798177; font-size: 14px; line-height: 1.6; margin: 12px 0 0; }
+.section-side-note { color: #9ba396; font-size: 10px; letter-spacing: 1.7px; font-weight: 800; white-space: nowrap; padding-bottom: 5px; }
+.destination-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 18px; }
+.destination-card { grid-column: span 2; height: 380px; border-radius: 19px; box-shadow: 0 10px 26px rgba(22,42,32,.08); }
+.destination-card:nth-child(n+4) { grid-column: span 3; height: 345px; }
+.destination-card img { width: 100%; height: 100%; object-fit: cover; transition: transform .65s ease; }
+.destination-card:hover img { transform: scale(1.07); }
+.image-shade { background: linear-gradient(180deg, rgba(3,29,20,.14) 0%, rgba(3,29,20,0) 36%, rgba(3,27,20,.83) 100%); }
+.destination-number { top: 18px; left: 18px; border: 1px solid rgba(255,255,255,.28); background: rgba(18,38,29,.34); padding: 7px 11px; font-size: 10px; letter-spacing: 1.2px; }
+.destination-content { bottom: 25px; left: 25px; right: 55px; gap: 6px; }
+.destination-content small { color: #d9e9cb; font-size: 11px; }
+.destination-content strong { font-size: 30px; line-height: 1.12; }
+.destination-content span { color: rgba(255,255,255,.82); font-size: 12px; }
+.round-arrow { right: 22px; bottom: 24px; }
+
+.how-section { padding: 98px 0 110px; background: #153c2f; color: #fff; }
+.how-section .section-kicker { color: #c8e4ac; }
+.how-section .center-heading { max-width: 750px; }
+.how-section .center-heading h2 { color: #fff; }
+.steps-grid { gap: 14px; }
+.step-card, .step-card:nth-child(2) { min-height: 255px; padding: 31px; background: rgba(255,255,255,.065); color: #fff; border: 1px solid rgba(255,255,255,.13); transform: none; }
+.step-card:nth-child(2) { background: #e7efdc; color: #183e30; }
+.step-card .step-no { color: rgba(255,255,255,.1); }
+.step-card:nth-child(2) .step-no { color: rgba(26,67,48,.09); }
+.step-icon { background: rgba(217,239,192,.15); color: #d4eeb4; }
+.step-card:nth-child(2) .step-icon { background: #cfe6b4; color: #245843; }
+.step-card p { color: rgba(255,255,255,.72); }
+.step-card:nth-child(2) p { color: #5c7661; }
+.step-card h3 { margin-top: 27px; }
+
+.create-page { padding-top: 45px; }
+.create-layout { border-radius: 23px; border-color: #e9e8de; }
+.create-intro { background: linear-gradient(160deg, rgba(13,45,34,.94), rgba(18,63,44,.81)), url('./assets/destinations/sa-pa.jpg') center/cover; }
+.create-intro h1 { font-size: 38px; }
+.form-card { background: #fff; }
+.form-title > span { background: #eaf1df; }
+.input-wrap { background: #fdfefa; border-color: #dfe5d9; }
+.input-wrap:focus-within { background: #fff; }
+.choice, .interest-chip, .style-option { transition: border-color .2s, background-color .2s, transform .2s; }
+.choice:hover, .interest-chip:hover, .style-option:hover { transform: translateY(-2px); }
+
+.trip-banner { min-height: 228px; display: flex; align-items: center; background-position: center 45%; background-size: cover; }
+.trip-banner::after { opacity: .5; }
+.banner-inner h1 { font-size: clamp(31px, 4vw, 47px); }
+.timeline-card, .budget-card { border-radius: 20px; border-color: #e8e9e2; box-shadow: 0 12px 30px rgba(28,48,36,.05); }
+.day-tabs { border-color: #e7e9e0; border-radius: 16px; }
+.day-tabs button.active { background: #e9f1df; }
+.trip-art { background-size: cover; background-position: center 42%; }
+.saved-trip-card { border-radius: 19px; box-shadow: 0 12px 28px rgba(24,49,33,.07); }
+.trip-card-body { padding: 23px; }
+.trip-card-body h2 { font-size: 24px; }
+
+@media (max-width: 980px) {
+  .hero { gap: 32px; }
+  .hero h1 { font-size: clamp(50px, 6vw, 68px); letter-spacing: -3.6px; }
+  .hero h1 em { letter-spacing: -3px; }
+}
+@media (max-width: 760px) {
+  .nav-links { padding: 10px; border-radius: 14px; }
+  .hero { min-height: 0; gap: 27px; padding-top: 42px; padding-bottom: 32px; }
+  .hero-copy { padding-bottom: 0; }
+  .hero h1 { font-size: clamp(44px, 10vw, 61px); margin: 22px 0 15px; }
+  .hero-visual { min-height: 410px; }
+  .hero-image { inset: 0; border-radius: 22px 22px 88px 22px; }
+  .quick-planner { bottom: auto; padding: 15px; margin-top: 0; }
+  .section { padding-top: 68px; padding-bottom: 75px; }
+  .destination-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .destination-card, .destination-card:nth-child(n+4) { grid-column: span 1; height: 310px; }
+  .destination-card:last-child { grid-column: span 2; }
+  .how-section { padding: 72px 0 78px; }
+  .steps-grid { grid-template-columns: 1fr; }
+  .step-card, .step-card:nth-child(2) { min-height: 0; }
+}
+@media (max-width: 600px) {
+  .hero-visual { min-height: 360px; }
+  .destination-grid { grid-template-columns: 1fr; }
+  .destination-card, .destination-card:nth-child(n+4), .destination-card:last-child { grid-column: 1; height: 340px; }
+  .section-side-note { display: none; }
+  .hero-actions { gap: 15px; }
+  .hero-actions .primary-button { width: 100%; }
+  .hero-explore { margin-left: 3px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .destination-card img, .primary-button, .choice, .interest-chip, .style-option { transition: none; }
+  .destination-card:hover img, .choice:hover, .interest-chip:hover, .style-option:hover { transform: none; }
 }

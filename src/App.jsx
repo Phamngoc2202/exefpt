@@ -3,9 +3,10 @@ import { ArrowRight, CalendarDays, Check, Compass, LogOut, MapPin, Menu, Refresh
 import './App.css'
 import { CreateTripPage, ItineraryPage, TripsPage } from './components/TripPages'
 import { destinationNames, northernDestinations } from './data/northernDestinations'
+import { destinationImages } from './data/destinationImages'
 import { addDays, countTripDays, createDefaultForm, generatePlan, planFromRow, toTripPayload, validateTripForm } from './lib/tripPlanner'
 import { supabase } from './lib/supabase'
-import tripGenieLogo from './logo/ChatGPT Image 14_47_22 23 thg 9, 2026.png'
+import tripGenieLogo from './logo/tripgenie-mark.png'
 
 const protectedPages = new Set(['create', 'itinerary', 'trips'])
 
@@ -46,17 +47,17 @@ function HomePage({ goTo, form, setForm }) {
     setForm({ ...form, startDate, endDate: startDate ? addDays(startDate, dayCount - 1) : '' })
   }
   return <main>
-    <section className="hero page-shell">
+    <section className="hero page-shell" aria-labelledby="hero-heading">
       <div className="hero-copy">
-        <span className="eyebrow"><Compass size={15} /> Khám phá miền Bắc Việt Nam</span>
-        <h1>Đi xa hơn.<br /><em>Lên kế hoạch rõ ràng hơn.</em></h1>
-        <p>Chọn điểm đến, ngày đi và ngân sách. TripGenie gợi ý lịch trình từng ngày cùng bảng chi phí có thể chỉnh sửa và lưu lại.</p>
-        <div className="home-honesty"><WalletCards size={18} /><span>Chi phí chỉ là ước tính tham khảo, không phải giá đặt chỗ.</span></div>
+        <span className="eyebrow"><Compass size={15} /> Chạm vào miền Bắc Việt Nam</span>
+        <h1 id="hero-heading">Đi để thấy.<br /><em>Về để nhớ.</em></h1>
+        <p>Từ ngõ nhỏ Hà Nội đến những cung đường Hà Giang. Lên lịch trình theo cách của bạn, thấy rõ từng khoản chi và sẵn sàng cho hành trình phía trước.</p>
+        <div className="hero-actions"><button className="primary-button" onClick={() => goTo('create')}>Bắt đầu lên kế hoạch <ArrowRight size={18} /></button><a href="#diem-den" className="hero-explore">Khám phá điểm đến <span aria-hidden="true">↗</span></a></div>
+        <div className="home-honesty"><WalletCards size={17} /><span>Lịch trình linh hoạt · Chi phí ước tính rõ ràng</span></div>
       </div>
       <div className="hero-visual">
-        <div className="hero-image" role="img" aria-label="Cảnh núi non miền Bắc Việt Nam" />
-        <div className="floating-card weather-card"><span className="weather-icon">🧭</span><div><strong>5 điểm đến</strong><small>Hà Nội · Hạ Long · Ninh Bình · Sa Pa · Hà Giang</small></div></div>
-        <div className="floating-card ai-card"><span className="mini-ai"><WalletCards size={17} /></span><div><small>Dễ theo dõi</small><strong>Chi phí theo từng hoạt động</strong></div></div>
+        <div className="hero-image" role="img" aria-label="Dòng sông và núi đá vôi Ninh Bình lúc bình minh" />
+        <div className="hero-photo-label"><span>01 / 05 · HÌNH MINH HỌA</span><strong>Ninh Bình, Việt Nam</strong><small>Những khoảng lặng đáng đi xa</small></div>
       </div>
       <form className="quick-planner" onSubmit={(event) => { event.preventDefault(); goTo('create') }}>
         <label><span><MapPin size={15} /> Điểm đến</span><select value={form.destination} onChange={(event) => setForm({ ...form, destination: event.target.value })}>{destinationNames.map((name) => <option key={name}>{name}</option>)}</select></label>
@@ -65,17 +66,17 @@ function HomePage({ goTo, form, setForm }) {
         <button className="primary-button search-button" type="submit"><Compass size={18} /> Lên kế hoạch</button>
       </form>
     </section>
-    <section className="section page-shell">
-      <div className="section-heading"><div><span className="section-kicker">Bắt đầu từ miền Bắc</span><h2>Chọn điểm đến của bạn</h2></div></div>
+    <section className="section page-shell" id="diem-den">
+      <div className="section-heading"><div><span className="section-kicker">Điểm đến gợi ý</span><h2>Miền Bắc, muôn cách để yêu.</h2><p>Năm điểm đến, năm sắc thái. Chọn nơi khiến bạn muốn xách ba lô lên ngay.</p></div><span className="section-side-note">KHÁM PHÁ / 01 — 05</span></div>
       <div className="destination-grid">
-        {northernDestinations.map((destination, index) => <button className="destination-card" style={{ background: destination.color }} onClick={() => selectDestination(destination.city)} key={destination.city}>
-          <span className="destination-card-art" aria-hidden="true">{destination.emoji}</span><span className="image-shade" /><span className="destination-number">0{index + 1}</span>
-          <span className="destination-content"><small>Từ {destination.minDays} ngày</small><strong>{destination.city}</strong><span>{destination.meta}</span></span><span className="round-arrow"><ArrowRight size={18} /></span>
+        {northernDestinations.map((destination, index) => <button className="destination-card" onClick={() => selectDestination(destination.city)} key={destination.city}>
+          <img src={destinationImages[destination.city]} alt="" loading="lazy" /><span className="image-shade" /><span className="destination-number">0{index + 1} / MIỀN BẮC</span>
+          <span className="destination-content"><small>{destination.minDays}–5 ngày khám phá</small><strong>{destination.city}</strong><span>{destination.meta}</span></span><span className="round-arrow"><ArrowRight size={18} /></span>
         </button>)}
       </div>
     </section>
     <section className="how-section"><div className="page-shell">
-      <div className="center-heading"><span className="section-kicker">Không cần API AI</span><h2>Từ ý tưởng đến kế hoạch có chi phí</h2></div>
+      <div className="center-heading"><span className="section-kicker">Hành trình của bạn</span><h2>Mọi chuyến đi đẹp bắt đầu từ một kế hoạch tốt.</h2></div>
       <div className="steps-grid">
         {[
           [<MapPin key="pin" />, '01', 'Chọn chuyến đi', 'Chọn nơi đến, ngày đi, số người và phong cách du lịch.'],

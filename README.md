@@ -21,3 +21,5 @@ Lệnh kiểm tra: npm test, npm run lint, npm run build.
 - Mở lại, sửa và xóa chuyến đã lưu. Chuyến cũ ở định dạng JSON trước đây vẫn đọc được.
 
 **Lưu ý:** Mọi mức giá là ước tính tham khảo, không phải giá thời gian thực hay báo giá đặt chỗ. Hãy kiểm tra lại vé, phòng, giờ mở cửa và thời gian di chuyển trước khi đi. Dữ liệu điểm tham quan tham khảo từ [Cục Du lịch Quốc gia Việt Nam](https://vietnam.travel/vi/places-to-go/northern-vietnam).
+
+Ảnh điểm đến trên giao diện là hình minh họa tạo bằng AI, không phải ảnh xác thực của địa điểm.
