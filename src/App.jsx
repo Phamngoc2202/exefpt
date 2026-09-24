@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Check, LogOut, Menu, RefreshCw, UserRound, X } from 'lucide-react'
+import { ArrowRight, CalendarDays, Check, KeyRound, LogOut, Mail, Menu, RefreshCw, ShieldCheck, UserRound, X } from 'lucide-react'
 import './App.css'
 import { CreateTripPage, ItineraryPage, TripsPage } from './components/TripPages'
 import AdminPage from './components/AdminPage'
@@ -18,7 +18,7 @@ function Logo({ onClick }) {
   return <button className="brand" onClick={onClick} aria-label="TripGenie — về trang chủ"><span className="brand-mark"><img src={tripGenieLogo} alt="" /></span><span>TripGenie</span></button>
 }
 
-function Header({ page, goTo, onLogin, session, onLogout, isAdmin }) {
+function Header({ page, goTo, onLogin, onAccount, session, isAdmin }) {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
@@ -36,14 +36,78 @@ function Header({ page, goTo, onLogin, session, onLogout, isAdmin }) {
       <button className={page === 'trips' ? 'active' : ''} onClick={() => navigate('trips')}>Chuyến đi của tôi</button>
       <button className={page === 'pricing' ? 'active' : ''} onClick={() => navigate('pricing')}>Bảng giá</button>
       {isAdmin && <button className={page === 'admin' ? 'active' : ''} onClick={() => navigate('admin')}>Quản trị</button>}
+      {session
+        ? <button className="mobile-account-link" onClick={() => { onAccount(); setOpen(false) }}><UserRound size={17} /> Tài khoản</button>
+        : <button className="mobile-account-link" onClick={() => { onLogin(); setOpen(false) }}><UserRound size={17} /> Đăng nhập</button>}
     </nav>
     <div className="nav-actions">
-      {session ? <button className="user-chip desktop-only" onClick={onLogout} title="Đăng xuất"><span>{session.user.email?.slice(0, 1).toUpperCase()}</span><small>{session.user.email}</small><LogOut size={15} /></button>
+      {session ? <button className="user-chip desktop-only" onClick={onAccount} title="Xem chi tiết tài khoản"><span>{(session.user.user_metadata?.full_name || session.user.email || '?').slice(0, 1).toUpperCase()}</span><small>{session.user.user_metadata?.full_name || session.user.email}</small><UserRound size={15} /></button>
         : <button className="ghost-button desktop-only" onClick={onLogin}><UserRound size={17} /> Đăng nhập</button>}
       <button className="primary-button compact desktop-only" onClick={() => navigate('create')}>Tạo chuyến đi <ArrowRight size={16} /></button>
       <button className="menu-button" onClick={() => setOpen(!open)} aria-label="Mở menu">{open ? <X /> : <Menu />}</button>
     </div>
   </div></header>
+}
+
+function AccountModal({ session, isAdmin, tripQuota, savedTripCount, onClose, onLogout, onUserUpdated }) {
+  const user = session.user
+  const [fullName, setFullName] = useState(user.user_metadata?.full_name || '')
+  const [phone, setPhone] = useState(user.user_metadata?.phone || '')
+  const [password, setPassword] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [feedback, setFeedback] = useState(null)
+  const joinedAt = user.created_at
+    ? new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(user.created_at))
+    : 'Chưa xác định'
+
+  const saveAccount = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    setFeedback(null)
+    const changes = {
+      data: { ...user.user_metadata, full_name: fullName.trim(), phone: phone.trim() },
+    }
+    if (password) changes.password = password
+    const { data, error } = await supabase.auth.updateUser(changes)
+    setSaving(false)
+    if (error) {
+      setFeedback({ type: 'error', text: error.message })
+      return
+    }
+    onUserUpdated(data.user)
+    setPassword('')
+    setFeedback({ type: 'success', text: 'Đã cập nhật thông tin tài khoản.' })
+  }
+
+  const signOut = async () => {
+    await onLogout()
+    onClose()
+  }
+
+  return <div className="modal-backdrop" onMouseDown={onClose}><section className="account-modal" role="dialog" aria-modal="true" aria-labelledby="account-title" onMouseDown={(event) => event.stopPropagation()}>
+    <button className="modal-close" type="button" onClick={onClose} aria-label="Đóng chi tiết tài khoản"><X size={19} /></button>
+    <aside className="account-summary">
+      <span className="account-avatar">{(fullName || user.email || '?').slice(0, 1).toUpperCase()}</span>
+      <div><span className="account-kicker">TRIPGENIE / TÀI KHOẢN</span><h2 id="account-title">{fullName || 'Khách du lịch'}</h2><p>{user.email}</p></div>
+      <dl className="account-facts">
+        <div><dt><ShieldCheck size={17} /> Vai trò</dt><dd>{isAdmin ? 'Quản trị viên' : 'Người dùng'}</dd></div>
+        <div><dt><CalendarDays size={17} /> Ngày tham gia</dt><dd>{joinedAt}</dd></div>
+        <div><dt><Check size={17} /> Email</dt><dd>{user.email_confirmed_at ? 'Đã xác minh' : 'Chưa xác minh'}</dd></div>
+      </dl>
+      <div className="account-stats"><div><strong>{tripQuota?.remaining ?? '—'}</strong><span>Lượt tạo còn lại</span></div><div><strong>{savedTripCount}</strong><span>Chuyến đã lưu</span></div></div>
+    </aside>
+    <div className="account-editor">
+      <div className="account-editor-heading"><span><UserRound size={20} /></span><div><h3>Chi tiết cá nhân</h3><p>Cập nhật thông tin hiển thị và bảo mật tài khoản.</p></div></div>
+      <form onSubmit={saveAccount}>
+        <label>Họ và tên<span className="account-input"><UserRound size={17} /><input value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Tên hiển thị của bạn" /></span></label>
+        <label>Email<span className="account-input is-readonly"><Mail size={17} /><input value={user.email || ''} readOnly /></span><small>Email đăng nhập được quản lý bởi Supabase Auth.</small></label>
+        <label>Số điện thoại<span className="account-input"><span className="account-phone-prefix">+84</span><input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Nhập số điện thoại" /></span></label>
+        <label>Mật khẩu mới<span className="account-input"><KeyRound size={17} /><input type="password" minLength="6" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Để trống nếu không thay đổi" /></span></label>
+        {feedback && <p className={`account-feedback ${feedback.type}`}>{feedback.text}</p>}
+        <div className="account-actions"><button className="account-save" type="submit" disabled={saving}>{saving ? <><RefreshCw className="spin" size={17} /> Đang lưu...</> : <>Lưu thay đổi <ArrowRight size={17} /></>}</button><button className="account-logout" type="button" onClick={signOut}><LogOut size={17} /> Đăng xuất</button></div>
+      </form>
+    </div>
+  </section></div>
 }
 
 function LoginModal({ onClose, initialMode = 'login' }) {
@@ -90,6 +154,7 @@ export default function App() {
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [loginOpen, setLoginOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const [authMode, setAuthMode] = useState('login')
   const [pendingPage, setPendingPage] = useState(null)
   const [session, setSession] = useState(null)
@@ -99,6 +164,12 @@ export default function App() {
   const [generating, setGenerating] = useState(false)
   const generationInProgress = useRef(false)
   const isAdmin = Boolean(session?.user?.id && adminUserId === session.user.id)
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(''), 3800)
+    return () => clearTimeout(timer)
+  }, [toast])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -285,13 +356,15 @@ export default function App() {
   }
   const handleLogout = async () => {
     await supabase.auth.signOut()
+    setAccountOpen(false)
     setToast('Bạn đã đăng xuất.')
   }
   const openLogin = () => { setPendingPage(null); setAuthMode('login'); setLoginOpen(true) }
   const closeLogin = () => { setPendingPage(null); setLoginOpen(false) }
+  const updateSessionUser = (user) => setSession((current) => current ? { ...current, user } : current)
 
   return <div className="app">
-    <Header page={page} goTo={goTo} onLogin={openLogin} session={session} onLogout={handleLogout} isAdmin={isAdmin} />
+    <Header page={page} goTo={goTo} onLogin={openLogin} onAccount={() => setAccountOpen(true)} session={session} isAdmin={isAdmin} />
     {page === 'home' && <HomePage goTo={goTo} form={form} setForm={updateForm} />}
     {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} formError={formError} onBack={() => goTo('home')} generating={generating} tripQuota={tripQuota} onSeePlans={() => goTo('pricing')} />}
     {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} />}
@@ -300,6 +373,7 @@ export default function App() {
     {page === 'admin' && (isAdmin ? <AdminPage currentUserId={session.user.id} /> : <main className="page-shell inner-page"><h1>Không có quyền truy cập</h1><p>Vui lòng đăng nhập bằng tài khoản quản trị.</p></main>)}
     <Footer goTo={goTo} />
     {loginOpen && <LoginModal onClose={closeLogin} initialMode={authMode} />}
+    {accountOpen && session && <AccountModal session={session} isAdmin={isAdmin} tripQuota={tripQuota} savedTripCount={trips.length} onClose={() => setAccountOpen(false)} onLogout={handleLogout} onUserUpdated={updateSessionUser} />}
     {toast && <button className="toast" onClick={() => setToast('')}><Check size={16} /> {toast}<X size={15} /></button>}
   </div>
 }

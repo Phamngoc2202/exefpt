@@ -30,10 +30,18 @@ export function createPersistentTravelScene(container, destinations) {
   const markers = createMarkers()
   Object.values(markers).forEach((marker) => world.add(marker))
 
-  scene.add(new THREE.AmbientLight(0xffffff, 2.2))
-  const sunlight = new THREE.DirectionalLight(0xfff4dc, 2.1)
-  sunlight.position.set(-2, 4, 6)
+  // Balanced ambient light so shadows remain crisp & dramatic
+  scene.add(new THREE.AmbientLight(0xffffff, 0.95))
+
+  // Primary warm sunlight casting clear shadows on low-poly facets
+  const sunlight = new THREE.DirectionalLight(0xfff5e6, 2.4)
+  sunlight.position.set(-3, 5, 5)
   scene.add(sunlight)
+
+  // Secondary cyan/blue rim light for depth highlight
+  const rimLight = new THREE.DirectionalLight(0x64dfdf, 1.2)
+  rimLight.position.set(4, -2, 3)
+  scene.add(rimLight)
 
   let progress = 0
   let activeDestination = destinations[0]?.city
@@ -58,17 +66,25 @@ export function createPersistentTravelScene(container, destinations) {
   function render(time = 0) {
     const morph = smooth(progress)
     const seconds = time * 0.001
-    const targetScale = baseScale * (1 + morph * 0.62)
+
+    // Scale & Position morph on scroll
+    const targetScale = baseScale * (1 + morph * 0.65)
     world.scale.setScalar(targetScale)
-    world.position.y += (-2.8 + morph * 1.45 - world.position.y) * 0.08
-    world.rotation.y += (pointerX * 0.09 + morph * 0.12 - world.rotation.y) * 0.08
-    world.rotation.x += (-pointerY * 0.06 + morph * 0.08 - world.rotation.x) * 0.08
-    world.rotation.z += (-morph * 0.16 - world.rotation.z) * 0.08
+    world.position.y += (-2.8 + morph * 1.5 - world.position.y) * 0.08
+
+    // 3D Perspective Rotation Morph: As user scrolls, island tilts to reveal top-down 3D map depth
+    const targetRotY = pointerX * 0.12 + morph * 0.35 + Math.sin(seconds * 0.3) * 0.04
+    const targetRotX = -pointerY * 0.08 + morph * 0.32 + 0.12
+    const targetRotZ = -morph * 0.18
+
+    world.rotation.y += (targetRotY - world.rotation.y) * 0.08
+    world.rotation.x += (targetRotX - world.rotation.x) * 0.08
+    world.rotation.z += (targetRotZ - world.rotation.z) * 0.08
 
     clouds.forEach((cloud, index) => {
       const origin = cloudOrigins[index]
-      cloud.position.x = origin.x + Math.sin(seconds * 0.22 + index) * 0.08
-      cloud.position.y = origin.y + Math.cos(seconds * 0.52 + index) * 0.035
+      cloud.position.x = origin.x + Math.sin(seconds * 0.25 + index) * 0.1
+      cloud.position.y = origin.y + Math.cos(seconds * 0.45 + index) * 0.045
     })
     const point = curve.getPointAt((seconds * 0.055) % 1)
     const tangent = curve.getTangentAt((seconds * 0.055) % 1)
@@ -76,9 +92,9 @@ export function createPersistentTravelScene(container, destinations) {
     plane.position.z += 0.18
     plane.rotation.z = Math.atan2(tangent.y, tangent.x) - Math.PI / 2
     Object.entries(markers).forEach(([city, marker], index) => {
-      const target = city === activeDestination ? 1.38 : 0.85
+      const target = city === activeDestination ? 1.42 : 0.85
       const scale = marker.scale.x + (target - marker.scale.x) * 0.13
-      marker.scale.setScalar(scale + Math.sin(seconds * 2 + index) * 0.002)
+      marker.scale.setScalar(scale + Math.sin(seconds * 2.4 + index) * 0.04)
     })
     renderer.render(scene, camera)
   }

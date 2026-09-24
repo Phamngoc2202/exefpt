@@ -1,29 +1,114 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Noto+Serif:ital,wght@1,400;1,500&display=swap');
-
 :root {
-  font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: #112d36;
-  background: #f7fbfa;
+  --font-sans: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-editorial: 'Lora', Georgia, serif;
+  font-family: var(--font-sans);
+  color: #0f2d35;
+  background: #f6faf9;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --ink: #112d36;
-  --muted: #607781;
-  --cream: #f7fbfa;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Premium Design Tokens */
+  --ink: #0d2931;
+  --muted: #55707b;
+  --cream: #f6faf9;
   --paper: #ffffff;
   --green: #087e83;
-  --green-dark: #075766;
+  --green-dark: #055458;
+  --green-glow: rgba(8, 126, 131, 0.15);
   --lime: #d9f3e9;
-  --line: #dce9e9;
+  --line: #d8e6e5;
   --violet: #5e55d6;
   --orange: #e87b4b;
+
+  /* Glassmorphism & Shadow Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --shadow-sm: 0 2px 8px rgba(13, 41, 49, 0.04);
+  --shadow-md: 0 8px 24px rgba(13, 41, 49, 0.08);
+  --shadow-lg: 0 16px 40px rgba(13, 41, 49, 0.12);
+  --shadow-glow: 0 12px 36px rgba(8, 126, 131, 0.22);
 }
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--cream); }
-button, input, select { font: inherit; }
-button { color: inherit; }
-button, a { -webkit-tap-highlight-color: transparent; }
-button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(94, 85, 214, .22); outline-offset: 2px; }
-#root { min-height: 100vh; }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: rgba(8, 126, 131, 0.2);
+  color: var(--green-dark);
+}
+
+/* Custom Modern Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #edf5f4;
+}
+::-webkit-scrollbar-thumb {
+  background: #b2d5d3;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #087e83;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--cream);
+  color: var(--ink);
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  letter-spacing: -0.02em;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+button {
+  color: inherit;
+  cursor: pointer;
+}
+
+button, a {
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid rgba(8, 126, 131, 0.35);
+  outline-offset: 2px;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Micro-interaction Utilities */
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+}

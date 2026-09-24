@@ -11,8 +11,8 @@ export default function PersistentTravelScene({ destinations, activeDestination 
   useEffect(() => {
     const container = containerRef.current
     const home = container.closest('.immersive-home')
+    const hero = home.querySelector('.home-hero')
     const journey = home.querySelector('.journey-globe')
-    const featured = home.querySelector('.home-featured')
     const media = window.matchMedia('(max-width: 600px), (prefers-reduced-motion: reduce)')
     const lowMemory = navigator.deviceMemory && navigator.deviceMemory <= 2
     let alive = true
@@ -23,9 +23,17 @@ export default function PersistentTravelScene({ destinations, activeDestination 
 
     const update = (time = 0) => {
       frame = null
+      const homeRect = home.getBoundingClientRect()
+      const heroRect = hero.getBoundingClientRect()
       const journeyRect = journey.getBoundingClientRect()
-      const progress = clamp((window.innerHeight * 0.72 - journeyRect.top) / Math.max(1, journeyRect.height * 0.95))
-      const hasVisibleWorld = featured.getBoundingClientRect().bottom > 0 && journeyRect.top < window.innerHeight * 1.5
+      // Start morphing as soon as the user scrolls the hero and finish as the
+      // journey chapter enters. No extra sticky scroll distance is required.
+      const journeyDistance = Math.max(1, journeyRect.height - window.innerHeight)
+      const animationDistance = Math.max(1, hero.offsetHeight + journeyDistance)
+      const progress = clamp(-heroRect.top / animationDistance)
+      // Keep the world alive for the complete homepage. Content sections use
+      // translucent surfaces so the same 3D journey continues behind them.
+      const hasVisibleWorld = homeRect.bottom > 0 && homeRect.top < window.innerHeight
       home.style.setProperty('--travel-world-opacity', hasVisibleWorld ? '1' : '0')
       const controller = controllerRef.current
       if (!controller || document.hidden) return
@@ -35,7 +43,7 @@ export default function PersistentTravelScene({ destinations, activeDestination 
         controller.setActiveDestination(activeRef.current)
         controller.render(time)
       }
-      if (hasVisibleWorld && progress < 1) frame = window.requestAnimationFrame(update)
+      if (hasVisibleWorld) frame = window.requestAnimationFrame(update)
     }
     const schedule = () => {
       if (frame === null) frame = window.requestAnimationFrame(update)

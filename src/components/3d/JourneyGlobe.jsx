@@ -1,4 +1,4 @@
-// The single persistent Three.js world stays behind this scroll chapter.
+// The persistent Three.js world continues behind this viewport-height chapter.
 export default function JourneyGlobe() {
   return <section id="journey" className="journey-globe" aria-label="Từ thế giới 3D đến miền Bắc">
     <div className="journey-globe-stage">
