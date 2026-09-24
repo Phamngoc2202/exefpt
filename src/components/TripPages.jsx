@@ -6,20 +6,21 @@ import {
 } from 'lucide-react'
 import { destinationNames, findDestination } from '../data/northernDestinations'
 import { destinationImages } from '../data/destinationImages'
+import AnimatedMoney from './AnimatedMoney'
 import { COST_CATEGORIES, MAX_TRIP_DAYS, addDays, countTripDays, formatTripDate, summarizePlan } from '../lib/tripPlanner'
 
 const interestOptions = ['Ẩm thực', 'Thiên nhiên', 'Văn hóa', 'Chụp ảnh', 'Biển', 'Mua sắm']
 const budgetRows = [
-  { category: 'Di chuyển', color: '#22a879', icon: TrainFront },
-  { category: 'Lưu trú', color: '#4338ca', icon: Hotel },
-  { category: 'Ăn uống', color: '#f97316', icon: Utensils },
-  { category: 'Hoạt động', color: '#d946ef', icon: Ticket },
-  { category: 'Dự phòng', color: '#e4ad37', icon: WalletCards },
+  { category: 'Di chuyển', color: '#0d8d96', icon: TrainFront },
+  { category: 'Lưu trú', color: '#315e8f', icon: Hotel },
+  { category: 'Ăn uống', color: '#e88855', icon: Utensils },
+  { category: 'Hoạt động', color: '#65ad94', icon: Ticket },
+  { category: 'Dự phòng', color: '#cda64d', icon: WalletCards },
 ]
 const activityIcons = { food: Utensils, hotel: Hotel, transport: Navigation, place: Landmark }
 const formatMoney = (value) => `${new Intl.NumberFormat('vi-VN').format(value)}đ`
 
-export function CreateTripPage({ form, setForm, onGenerate, formError, onBack }) {
+export function CreateTripPage({ form, setForm, onGenerate, formError, onBack, generating = false }) {
   const destination = findDestination(form.destination)
   const toggleInterest = (interest) => {
     setForm((current) => ({
@@ -81,7 +82,7 @@ export function CreateTripPage({ form, setForm, onGenerate, formError, onBack })
             ].map(([title, description, price]) => <button type="button" onClick={() => setForm({ ...form, style: title })} className={form.style === title ? 'style-option active' : 'style-option'} key={title}><span className="radio-dot" /><div><strong>{title}</strong><small>{description}</small></div><b>{price}</b></button>)}
           </div></div>
           {formError && <p className="form-error" role="alert">{formError}</p>}
-          <button className="generate-button" onClick={onGenerate}><Compass size={19} /> Tạo kế hoạch ước tính <ArrowRight size={18} /></button>
+          <button className="generate-button" onClick={onGenerate} disabled={generating} aria-busy={generating}>{generating ? <><RefreshCw className="spin" size={18} /> Đang ghép lịch trình và chi phí...</> : <><Compass size={19} /> Tạo kế hoạch ước tính <ArrowRight size={18} /></>}</button>
           <p className="form-note"><WalletCards size={13} /> Đây là giá ước tính, chưa phải giá vé hay báo giá đặt chỗ.</p>
         </section>
       </div>
@@ -103,6 +104,8 @@ function BudgetPanel({ plan }) {
   return (
     <section className="budget-card">
       <div className="panel-heading"><div><span className="section-kicker">Ngân sách rõ ràng</span><h2>Chi phí dự kiến</h2></div></div>
+      <AnimatedMoney value={summary.total} />
+      <span className="budget-total-note">Tổng ước tính cho {plan.form.travelers} người · đã bao gồm dự phòng</span>
       <div className="budget-summary">
         <div className="donut" style={{ background: `conic-gradient(${slices.join(', ')})` }}><div><small>Tổng dự kiến</small><strong>{(summary.total / 1000000).toFixed(1)}M</strong><span>VNĐ</span></div></div>
         <div className="budget-legend">

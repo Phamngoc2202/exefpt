@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, CalendarDays, Check, Compass, LogOut, MapPin, Menu, RefreshCw, UserRound, Users, WalletCards, X } from 'lucide-react'
+import { ArrowRight, Check, LogOut, Menu, RefreshCw, UserRound, X } from 'lucide-react'
 import './App.css'
 import { CreateTripPage, ItineraryPage, TripsPage } from './components/TripPages'
-import TravelCompass3D from './components/TravelCompass3D'
-import { destinationNames, northernDestinations } from './data/northernDestinations'
-import { destinationImages } from './data/destinationImages'
-import { addDays, countTripDays, createDefaultForm, generatePlan, planFromRow, toTripPayload, validateTripForm } from './lib/tripPlanner'
+import './home.css'
+import HomePage from './components/home/HomePage'
+import { createDefaultForm, generatePlan, planFromRow, toTripPayload, validateTripForm } from './lib/tripPlanner'
 import { supabase } from './lib/supabase'
 import tripGenieLogo from './logo/tripgenie-mark.png'
 
@@ -17,8 +16,15 @@ function Logo({ onClick }) {
 
 function Header({ page, goTo, onLogin, session, onLogout }) {
   const [open, setOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 16)
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    return () => window.removeEventListener('scroll', update)
+  }, [])
   const navigate = (target) => { goTo(target); setOpen(false) }
-  return <header className="site-header"><div className="nav-shell">
+  return <header className={['site-header', page === 'home' ? 'home-header' : '', scrolled ? 'scrolled' : ''].filter(Boolean).join(' ')}><div className="nav-shell">
     <Logo onClick={() => navigate('home')} />
     <nav className={open ? 'nav-links open' : 'nav-links'}>
       <button className={page === 'home' ? 'active' : ''} onClick={() => navigate('home')}>Khám phá</button>
@@ -32,62 +38,6 @@ function Header({ page, goTo, onLogin, session, onLogout }) {
       <button className="menu-button" onClick={() => setOpen(!open)} aria-label="Mở menu">{open ? <X /> : <Menu />}</button>
     </div>
   </div></header>
-}
-
-function HomePage({ goTo, form, setForm }) {
-  const selectDestination = (city) => {
-    setForm((current) => ({ ...current, destination: city }))
-    goTo('create')
-  }
-  const setTravelWith = (travelWith) => {
-    const counts = { 'Một mình': 1, 'Cặp đôi': 2, 'Bạn bè': 3, 'Gia đình': 4 }
-    setForm((current) => ({ ...current, travelWith, travelers: counts[travelWith] }))
-  }
-  const changeStartDate = (startDate) => {
-    const dayCount = Math.max(1, countTripDays(form.startDate, form.endDate))
-    setForm({ ...form, startDate, endDate: startDate ? addDays(startDate, dayCount - 1) : '' })
-  }
-  return <main>
-    <section className="hero page-shell" aria-labelledby="hero-heading">
-      <div className="hero-copy">
-        <span className="eyebrow"><Compass size={15} /> Chạm vào miền Bắc Việt Nam</span>
-        <h1 id="hero-heading">Đi để thấy.<br /><em>Về để nhớ.</em></h1>
-        <p>Từ ngõ nhỏ Hà Nội đến những cung đường Hà Giang. Lên lịch trình theo cách của bạn, thấy rõ từng khoản chi và sẵn sàng cho hành trình phía trước.</p>
-        <div className="hero-actions"><button className="primary-button" onClick={() => goTo('create')}>Bắt đầu lên kế hoạch <ArrowRight size={18} /></button><a href="#diem-den" className="hero-explore">Khám phá điểm đến <span aria-hidden="true">↗</span></a></div>
-        <div className="home-honesty"><WalletCards size={17} /><span>Lịch trình linh hoạt · Chi phí ước tính rõ ràng</span></div>
-      </div>
-      <div className="hero-visual">
-        <div className="hero-image" role="img" aria-label="Dòng sông và núi đá vôi Ninh Bình lúc bình minh" />
-        <TravelCompass3D />
-        <div className="hero-photo-label"><span>01 / 05 · HÌNH MINH HỌA</span><strong>Ninh Bình, Việt Nam</strong><small>Những khoảng lặng đáng đi xa</small></div>
-      </div>
-      <form className="quick-planner" onSubmit={(event) => { event.preventDefault(); goTo('create') }}>
-        <label><span><MapPin size={15} /> Điểm đến</span><select value={form.destination} onChange={(event) => setForm({ ...form, destination: event.target.value })}>{destinationNames.map((name) => <option key={name}>{name}</option>)}</select></label>
-        <label><span><CalendarDays size={15} /> Ngày đi</span><input type="date" value={form.startDate} onChange={(event) => changeStartDate(event.target.value)} /></label>
-        <label><span><Users size={15} /> Đồng hành</span><select value={form.travelWith} onChange={(event) => setTravelWith(event.target.value)}><option>Cặp đôi</option><option>Một mình</option><option>Bạn bè</option><option>Gia đình</option></select></label>
-        <button className="primary-button search-button" type="submit"><Compass size={18} /> Lên kế hoạch</button>
-      </form>
-    </section>
-    <section className="section page-shell" id="diem-den">
-      <div className="section-heading"><div><span className="section-kicker">Điểm đến gợi ý</span><h2>Miền Bắc, muôn cách để yêu.</h2><p>Năm điểm đến, năm sắc thái. Chọn nơi khiến bạn muốn xách ba lô lên ngay.</p></div><span className="section-side-note">KHÁM PHÁ / 01 — 05</span></div>
-      <div className="destination-grid">
-        {northernDestinations.map((destination, index) => <button className="destination-card" onClick={() => selectDestination(destination.city)} key={destination.city}>
-          <img src={destinationImages[destination.city]} alt="" loading="lazy" /><span className="image-shade" /><span className="destination-number">0{index + 1} / MIỀN BẮC</span>
-          <span className="destination-content"><small>{destination.minDays}–5 ngày khám phá</small><strong>{destination.city}</strong><span>{destination.meta}</span></span><span className="round-arrow"><ArrowRight size={18} /></span>
-        </button>)}
-      </div>
-    </section>
-    <section className="how-section"><div className="page-shell">
-      <div className="center-heading"><span className="section-kicker">Hành trình của bạn</span><h2>Mọi chuyến đi đẹp bắt đầu từ một kế hoạch tốt.</h2></div>
-      <div className="steps-grid">
-        {[
-          [<MapPin key="pin" />, '01', 'Chọn chuyến đi', 'Chọn nơi đến, ngày đi, số người và phong cách du lịch.'],
-          [<CalendarDays key="calendar" />, '02', 'Xem lịch trình', 'Xem từng ngày và chỉnh hoạt động, giờ, khoản chi.'],
-          [<WalletCards key="wallet" />, '03', 'Kiểm tra ngân sách', 'Tổng chi phí được cộng lại rồi lưu trong chuyến đi của bạn.'],
-        ].map(([icon, no, title, description]) => <div className="step-card" key={no}><span className="step-no">{no}</span><span className="step-icon">{icon}</span><h3>{title}</h3><p>{description}</p></div>)}
-      </div>
-    </div></section>
-  </main>
 }
 
 function LoginModal({ onClose, initialMode = 'login' }) {
@@ -138,6 +88,7 @@ export default function App() {
   const [pendingPage, setPendingPage] = useState(null)
   const [session, setSession] = useState(null)
   const [toast, setToast] = useState('')
+  const [generating, setGenerating] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -184,10 +135,18 @@ export default function App() {
     const error = validateTripForm(form)
     setFormError(error)
     if (error) return
-    setPlan(generatePlan(form))
-    setSaved(false)
-    setPage('itinerary')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setGenerating(true)
+    try {
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        await new Promise((resolve) => setTimeout(resolve, 280))
+      }
+      setPlan(generatePlan(form))
+      setSaved(false)
+      setPage('itinerary')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } finally {
+      setGenerating(false)
+    }
   }
   const handleRegenerate = () => {
     if (!plan || !window.confirm('Tạo lại sẽ thay thế các chỉnh sửa chưa lưu. Tiếp tục?')) return
@@ -265,7 +224,7 @@ export default function App() {
   return <div className="app">
     <Header page={page} goTo={goTo} onLogin={openLogin} session={session} onLogout={handleLogout} />
     {page === 'home' && <HomePage goTo={goTo} form={form} setForm={updateForm} />}
-    {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} formError={formError} onBack={() => goTo('home')} />}
+    {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} formError={formError} onBack={() => goTo('home')} generating={generating} />}
     {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} />}
     {page === 'trips' && <TripsPage trips={trips} goTo={goTo} onOpen={handleOpenTrip} onDelete={handleDeleteTrip} deletingId={deletingId} />}
     <Footer goTo={goTo} />
