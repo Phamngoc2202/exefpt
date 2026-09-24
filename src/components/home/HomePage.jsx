@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowDown, ArrowRight, ArrowUpRight, CalendarDays, Compass, MapPin, Sparkles, Users, WalletCards } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUpRight, CalendarDays, Clock, Compass, ExternalLink, MapPin, Newspaper, Sparkles, Users, WalletCards } from 'lucide-react'
 import TravelScene from '../3d/TravelScene'
 import JourneyGlobe from '../3d/JourneyGlobe'
 import PersistentTravelScene from '../3d/PersistentTravelScene'
@@ -20,8 +20,15 @@ const destinationEstimates = Object.fromEntries(northernDestinations.map((destin
 
 const featured = ['Sa Pa', 'Hạ Long', 'Hà Giang'].map((city) => northernDestinations.find((destination) => destination.city === city))
 
+const formatNewsDate = (value) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Mới cập nhật'
+  return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
+}
+
 export default function HomePage({ goTo, form, setForm }) {
   const [activeDestination, setActiveDestination] = useState('Ninh Bình')
+  const [travelNews, setTravelNews] = useState({ articles: [], loading: true, error: '' })
   const active = northernDestinations.find((destination) => destination.city === activeDestination) || northernDestinations[0]
 
   useEffect(() => {
@@ -36,6 +43,21 @@ export default function HomePage({ goTo, form, setForm }) {
     }, { threshold: 0.08 })
     sections.forEach((section) => { section.classList.add('will-reveal'); observer.observe(section) })
     return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('/api/travel-news', { signal: controller.signal })
+      .then(async (response) => {
+        const payload = await response.json()
+        if (!response.ok) throw new Error(payload.error || 'Không thể tải tin du lịch.')
+        return payload
+      })
+      .then((payload) => setTravelNews({ articles: payload.articles || [], loading: false, error: '' }))
+      .catch((error) => {
+        if (error.name !== 'AbortError') setTravelNews({ articles: [], loading: false, error: error.message })
+      })
+    return () => controller.abort()
   }, [])
 
   const selectDestination = (city) => {
@@ -131,7 +153,23 @@ export default function HomePage({ goTo, form, setForm }) {
       </div>
     </section>
 
-    <section className="home-inspiration home-reveal" aria-labelledby="inspiration-heading"><div><span className="home-section-label">05 / CẢM HỨNG LÊN ĐƯỜNG</span><h2 id="inspiration-heading">Có những nơi<br />chỉ cần nghĩ tới<br /><em>là muốn đi.</em></h2><p>Từ phố cổ Hà Nội đến vùng núi Sa Pa, hãy để chuyến đi tiếp theo bắt đầu bằng một lựa chọn nhỏ.</p><button type="button" onClick={() => goTo('create')}>Lên lịch trình của tôi <ArrowUpRight size={18} /></button></div></section>
+    <section className="home-news home-section home-reveal" aria-labelledby="news-heading">
+      <div className="news-heading">
+        <div><span className="home-section-label">05 / TIN TỨC & CẢM HỨNG</span><h2 id="news-heading">Chuyện đang diễn ra.<br /><em>Ý tưởng cho chuyến tới.</em></h2></div>
+        <div className="news-heading-copy"><p>Tin tức, trải nghiệm và gợi ý mới nhất dành cho người yêu dịch chuyển.</p><a href="https://vnexpress.net/du-lich" target="_blank" rel="noreferrer">Xem nguồn VnExpress <ExternalLink size={15} /></a></div>
+      </div>
+      {travelNews.loading ? <div className="news-grid" aria-label="Đang tải tin du lịch">{[0, 1, 2].map((item) => <div className="news-card news-skeleton" key={item}><span /><div><i /><i /><i /></div></div>)}</div>
+        : travelNews.error ? <div className="news-error"><Newspaper size={28} /><div><strong>Chưa tải được tin du lịch</strong><p>{travelNews.error}</p></div><a href="https://vnexpress.net/du-lich" target="_blank" rel="noreferrer">Đọc trực tiếp <ArrowUpRight size={16} /></a></div>
+          : <div className="news-grid">{travelNews.articles.map((article) => <article className="news-card" key={article.id}>
+            <a className="news-card-image" href={article.url} target="_blank" rel="noreferrer" aria-label={`Đọc bài: ${article.title}`}>
+              {article.image ? <img src={article.image} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span><Newspaper size={30} /></span>}
+            </a>
+            <div className="news-card-body"><div className="news-meta"><span>{article.source}</span><time dateTime={article.publishedAt || undefined}><Clock size={13} /> {formatNewsDate(article.publishedAt)}</time></div><h3><a href={article.url} target="_blank" rel="noreferrer">{article.title}</a></h3><p>{article.description}</p><a className="news-read-more" href={article.url} target="_blank" rel="noreferrer">Đọc bài viết <ArrowUpRight size={15} /></a></div>
+          </article>)}</div>}
+      <p className="news-attribution">Nội dung được tổng hợp từ RSS chính thức của VnExpress Du lịch. Bản quyền bài viết thuộc về đơn vị xuất bản.</p>
+    </section>
+
+    <section className="home-inspiration home-reveal" aria-labelledby="inspiration-heading"><div><span className="home-section-label">06 / CẢM HỨNG LÊN ĐƯỜNG</span><h2 id="inspiration-heading">Có những nơi<br />chỉ cần nghĩ tới<br /><em>là muốn đi.</em></h2><p>Từ phố cổ Hà Nội đến vùng núi Sa Pa, hãy để chuyến đi tiếp theo bắt đầu bằng một lựa chọn nhỏ.</p><button type="button" onClick={() => goTo('create')}>Lên lịch trình của tôi <ArrowUpRight size={18} /></button></div></section>
     <section className="home-final-cta home-reveal"><span>TRIPGENIE / NORTHERN VIETNAM</span><h2>Hành trình của bạn<br /><em>đang chờ phía trước.</em></h2><button type="button" onClick={() => goTo('create')}>Bắt đầu lên kế hoạch <ArrowRight size={19} /></button></section>
   </main>
 }
