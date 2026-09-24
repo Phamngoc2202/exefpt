@@ -3,6 +3,13 @@ import { findDestination } from '../data/northernDestinations.js'
 export const MAX_TRIP_DAYS = 5
 export const COST_CATEGORIES = ['Di chuyển', 'Lưu trú', 'Ăn uống', 'Hoạt động']
 
+export function activityTypeForCategory(category, preferredType = 'place') {
+  if (category === 'Di chuyển') return 'transport'
+  if (category === 'Lưu trú') return 'hotel'
+  if (category === 'Ăn uống') return 'food'
+  return preferredType === 'nature' ? 'nature' : 'place'
+}
+
 const styleEstimates = {
   'Tiết kiệm': { roomPerNight: 350000, lunchPerPerson: 70000, dinnerPerPerson: 90000 },
   'Cân bằng': { roomPerNight: 600000, lunchPerPerson: 100000, dinnerPerPerson: 130000 },
@@ -166,23 +173,44 @@ export function planFromRow(row) {
     travelWith: row.travel_with || 'Cặp đôi', style: row.travel_style || 'Cân bằng', interests: row.interests || [],
   }
   const days = rawDays.map((day, index) => ({
+    ...day,
     day: index + 1, date: day.date || addDays(row.start_date, index), label: day.label || 'Hành trình đã lưu',
-    activities: (day.activities || []).map((activity, activityIndex) => ({
-      id: activity.id || `${row.id}-${index}-${activityIndex}`,
-      time: activity.time || '09:00', title: activity.title || 'Hoạt động', note: activity.note || '',
-      cost: legacyCost(activity.cost), type: activity.type || 'place',
-      category: activity.category || ({ food: 'Ăn uống', transport: 'Di chuyển', hotel: 'Lưu trú' }[activity.type] || 'Hoạt động'),
-    })),
+    activities: (day.activities || []).map((activity, activityIndex) => {
+      const category = activity.category || ({ food: 'Ăn uống', transport: 'Di chuyển', hotel: 'Lưu trú' }[activity.type] || 'Hoạt động')
+      return {
+        ...activity,
+        id: activity.id || `${row.id}-${index}-${activityIndex}`,
+        time: activity.time || '09:00', title: activity.title || 'Hoạt động', note: activity.note || '',
+        cost: legacyCost(activity.cost), category,
+        type: activityTypeForCategory(category, activity.type),
+      }
+    }),
   }))
-  return { id: row.id, form, days }
+  return { id: row.id, generationEventId: row.generation_event_id || null, form, days }
 }
 
 export function toTripPayload(plan, userId) {
   const { form } = plan
   return {
-    user_id: userId, destination: form.destination, start_date: form.startDate, end_date: form.endDate,
+    user_id: userId, generation_event_id: plan.generationEventId || null,
+    destination: form.destination, start_date: form.startDate, end_date: form.endDate,
     budget: form.budget, travel_with: form.travelWith, travel_style: form.style,
     interests: form.interests, itinerary: { version: 2, origin: form.origin, travelers: form.travelers, days: plan.days },
     budget_plan: summarizePlan(plan),
+  }
+}
+
+export function toCreateSavedTripArgs(plan) {
+  const payload = toTripPayload(plan, null)
+  return {
+    p_destination: payload.destination,
+    p_start_date: payload.start_date,
+    p_end_date: payload.end_date,
+    p_budget: payload.budget,
+    p_travel_with: payload.travel_with,
+    p_travel_style: payload.travel_style,
+    p_interests: payload.interests,
+    p_itinerary: payload.itinerary,
+    p_budget_plan: payload.budget_plan,
   }
 }

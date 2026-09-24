@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ArrowDown, ArrowRight, ArrowUpRight, CalendarDays, Compass, MapPin, Sparkles, Users, WalletCards } from 'lucide-react'
 import TravelScene from '../3d/TravelScene'
+import JourneyGlobe from '../3d/JourneyGlobe'
+import PersistentTravelScene from '../3d/PersistentTravelScene'
 import DestinationCard from '../DestinationCard'
 import { destinationImages } from '../../data/destinationImages'
 import { destinationNames, northernDestinations } from '../../data/northernDestinations'
@@ -50,6 +52,7 @@ export default function HomePage({ goTo, form, setForm }) {
   }
 
   return <main className="immersive-home">
+    <PersistentTravelScene destinations={northernDestinations} activeDestination={activeDestination} />
     <section className="home-hero" aria-labelledby="hero-heading">
       <TravelScene destinations={northernDestinations} activeDestination={activeDestination} onHover={setActiveDestination} onSelect={selectDestination} />
       <div className="home-hero-haze" aria-hidden="true" />
@@ -65,6 +68,8 @@ export default function HomePage({ goTo, form, setForm }) {
       <div className="home-hero-index"><span>21°02′ BẮC</span><span>5 ĐIỂM ĐẾN ĐANG HỖ TRỢ</span></div>
       <a className="home-scroll-cue" href="#explore" aria-label="Cuộn xuống khám phá điểm đến"><ArrowDown size={16} /> CUỘN ĐỂ KHÁM PHÁ</a>
     </section>
+
+    <JourneyGlobe />
 
     <section className="home-explore home-section home-reveal" id="explore" aria-labelledby="explore-heading">
       <div className="home-section-heading">

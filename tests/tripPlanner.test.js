@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  addDays, countTripDays, generatePlan, planFromRow, summarizePlan, toTripPayload, validateTripForm,
+  activityTypeForCategory, addDays, countTripDays, generatePlan, planFromRow, summarizePlan, toCreateSavedTripArgs, toTripPayload, validateTripForm,
 } from '../src/lib/tripPlanner.js'
 
 const formFor = (destination = 'Ninh Bình', days = 3, travelers = 2, budget = 5000000) => ({
@@ -61,15 +61,27 @@ test('kiểm tra điểm đến, số ngày, số người và ngân sách', () 
 
 test('lưu và đọc lại giữ nguyên các ngày, chi phí, số người', () => {
   const plan = generatePlan(formFor('Hạ Long', 2, 3))
+  plan.generationEventId = 'event-1'
   const payload = toTripPayload(plan, 'user-1')
   const restored = planFromRow({
     id: 'trip-1', ...payload, start_date: payload.start_date, end_date: payload.end_date,
   })
   assert.equal(payload.itinerary.version, 2)
   assert.equal(restored.id, 'trip-1')
+  assert.equal(restored.generationEventId, 'event-1')
   assert.equal(restored.form.travelers, 3)
   assert.deepEqual(restored.days, plan.days)
   assert.deepEqual(summarizePlan(restored), summarizePlan(plan))
+})
+
+test('tạo chuyến đi tự lưu truyền đúng lịch trình và dự toán vào RPC', () => {
+  const plan = generatePlan(formFor('Ninh Bình', 2, 2))
+  const args = toCreateSavedTripArgs(plan)
+  assert.equal(args.p_destination, 'Ninh Bình')
+  assert.equal(args.p_itinerary.version, 2)
+  assert.equal(args.p_itinerary.days.length, 2)
+  assert.deepEqual(args.p_budget_plan, summarizePlan(plan))
+  assert.equal(Object.hasOwn(args, 'user_id'), false)
 })
 
 test('chuyến đi lưu định dạng cũ vẫn đọc được', () => {
@@ -79,4 +91,32 @@ test('chuyến đi lưu định dạng cũ vẫn đọc được', () => {
     itinerary: [{ day: 1, activities: [{ time: '09:00', title: 'Tam Cốc', cost: '120.000đ', type: 'place' }] }],
   })
   assert.equal(restored.days[0].activities[0].cost, 120000)
+})
+
+test('giữ điểm đến từng ngày và vị trí hoạt động từ dữ liệu chuyến đi', () => {
+  const restored = planFromRow({
+    id: 'multi-stop', destination: 'Miền Bắc', start_date: '2026-10-20', end_date: '2026-10-21',
+    budget: 4000000, travel_with: 'Cặp đôi', travel_style: 'Cân bằng', interests: [],
+    itinerary: { version: 2, travelers: 2, days: [
+      { date: '2026-10-20', destination: 'Hà Nội', activities: [{ title: 'Phố cổ', location: 'Hoàn Kiếm', cost: 0 }] },
+      { date: '2026-10-21', destination: 'Ninh Bình', activities: [{ title: 'Tràng An', location: 'Tràng An', cost: 100000 }] },
+    ] },
+  })
+  assert.equal(restored.days.length, 2)
+  assert.deepEqual(restored.days.map((day) => day.destination), ['Hà Nội', 'Ninh Bình'])
+  assert.equal(restored.days[1].activities[0].location, 'Tràng An')
+})
+
+test('loại hoạt động quyết định icon, kể cả dữ liệu cũ có type không khớp', () => {
+  assert.equal(activityTypeForCategory('Ăn uống', 'place'), 'food')
+  assert.equal(activityTypeForCategory('Lưu trú', 'food'), 'hotel')
+  assert.equal(activityTypeForCategory('Di chuyển', 'place'), 'transport')
+  assert.equal(activityTypeForCategory('Hoạt động', 'food'), 'place')
+  assert.equal(activityTypeForCategory('Hoạt động', 'nature'), 'nature')
+
+  const plan = generatePlan(formFor('Ninh Bình', 2))
+  plan.days[0].activities[0].category = 'Ăn uống'
+  plan.days[0].activities[0].type = 'place'
+  const restored = planFromRow({ id: 'trip-1', ...toTripPayload(plan, 'user-1') })
+  assert.equal(restored.days[0].activities[0].type, 'food')
 })
