@@ -6,6 +6,7 @@ import PersistentTravelScene from '../3d/PersistentTravelScene'
 import DestinationCard from '../DestinationCard'
 import { destinationImages } from '../../data/destinationImages'
 import { destinationNames, northernDestinations } from '../../data/northernDestinations'
+import { departurePointNames } from '../../data/departurePoints'
 import { addDays, countTripDays, createDefaultForm, generatePlan, summarizePlan } from '../../lib/tripPlanner'
 
 const destinationEstimates = Object.fromEntries(northernDestinations.map((destination) => {
@@ -134,6 +135,7 @@ export default function HomePage({ goTo, form, setForm }) {
       <form className="home-command-form" onSubmit={(event) => { event.preventDefault(); goTo('create') }}>
         <div className="command-title"><Sparkles size={20} /><div><strong>Thiết kế hành trình</strong><small>Lịch trình và chi phí ước tính — không phải báo giá đặt chỗ</small></div></div>
         <div className="command-fields">
+          <label><span><Compass size={15} /> Bạn xuất phát từ đâu?</span><select value={form.origin} onChange={(event) => setForm({ ...form, origin: event.target.value })}>{departurePointNames.map((name) => <option key={name}>{name}</option>)}</select></label>
           <label><span><MapPin size={15} /> Bạn muốn đến đâu?</span><select value={form.destination} onChange={(event) => setForm({ ...form, destination: event.target.value })}>{destinationNames.map((name) => <option key={name}>{name}</option>)}</select></label>
           <label><span><CalendarDays size={15} /> Khởi hành khi nào?</span><input type="date" value={form.startDate} onChange={(event) => changeStartDate(event.target.value)} /></label>
           <label><span><Users size={15} /> Đi cùng ai?</span><select value={form.travelWith} onChange={(event) => setTravelWith(event.target.value)}><option>Cặp đôi</option><option>Một mình</option><option>Bạn bè</option><option>Gia đình</option></select></label>

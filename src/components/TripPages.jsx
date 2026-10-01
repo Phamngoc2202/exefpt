@@ -2,12 +2,17 @@ import { useState } from 'react'
 import {
   ArrowLeft, ArrowRight, CalendarDays, Check, CircleDollarSign, Clock3, Compass,
   Hotel, Landmark, Map, MapPin, Mountain, Navigation, Pencil, Plus, RefreshCw, Save,
-  Ticket, TrainFront, Trash2, Users, Utensils, WalletCards, X,
+  Sparkles, Ticket, TrainFront, Trash2, Users, Utensils, WalletCards, X,
 } from 'lucide-react'
 import { destinationNames, findDestination } from '../data/northernDestinations'
+import { departurePointNames, findDeparturePoint } from '../data/departurePoints'
 import { destinationImages } from '../data/destinationImages'
 import AnimatedMoney from './AnimatedMoney'
 import TripRouteScene from './3d/TripRouteScene'
+import TripMap from './TripMap'
+import TripWeather from './TripWeather'
+import TransportProviders from './TransportProviders'
+import LodgingProviders from './LodgingProviders'
 import { COST_CATEGORIES, MAX_TRIP_DAYS, activityTypeForCategory, addDays, countTripDays, formatTripDate, summarizePlan } from '../lib/tripPlanner'
 
 const interestOptions = ['Ẩm thực', 'Thiên nhiên', 'Văn hóa', 'Chụp ảnh', 'Biển', 'Mua sắm']
@@ -20,6 +25,7 @@ const budgetRows = [
 ]
 const activityIcons = { food: Utensils, hotel: Hotel, transport: Navigation, place: Landmark, nature: Mountain }
 const formatMoney = (value) => `${new Intl.NumberFormat('vi-VN').format(value)}đ`
+const aiDaySuggestions = ['Nhẹ nhàng hơn', 'Giảm chi phí', 'Ưu tiên chụp ảnh', 'Thêm trải nghiệm địa phương']
 
 export function CreateTripPage({ form, setForm, onGenerate, formError, onBack, generating = false, tripQuota, onSeePlans }) {
   const destination = findDestination(form.destination)
@@ -57,15 +63,16 @@ export function CreateTripPage({ form, setForm, onGenerate, formError, onBack, g
         </aside>
 
         <section className="form-card">
-          <div className="form-title"><span>01</span><div><h2>Thông tin chuyến đi</h2><p>Hiện hỗ trợ 5 điểm đến miền Bắc, khởi hành từ Hà Nội</p></div></div>
+          <div className="form-title"><span>01</span><div><h2>Thông tin chuyến đi</h2><p>Chọn nơi xuất phát và điểm đến phù hợp với bạn</p></div></div>
           <div className="field-grid">
-            <label className="field full"><span>Điểm đến</span><div className="input-wrap"><MapPin size={18} /><select value={form.destination} onChange={(event) => setForm({ ...form, destination: event.target.value })}>{destinationNames.map((city) => <option key={city}>{city}</option>)}</select></div></label>
+            <label className="field"><span>Điểm xuất phát</span><div className="input-wrap"><Navigation size={18} /><select value={form.origin} onChange={(event) => setForm({ ...form, origin: event.target.value })}>{departurePointNames.map((city) => <option key={city}>{city}</option>)}</select></div></label>
+            <label className="field"><span>Điểm đến</span><div className="input-wrap"><MapPin size={18} /><select value={form.destination} onChange={(event) => setForm({ ...form, destination: event.target.value })}>{destinationNames.map((city) => <option key={city}>{city}</option>)}</select></div></label>
             <label className="field"><span>Ngày bắt đầu</span><div className="input-wrap"><CalendarDays size={18} /><input type="date" value={form.startDate} onChange={(event) => changeStartDate(event.target.value)} /></div></label>
             <label className="field"><span>Ngày kết thúc</span><div className="input-wrap"><CalendarDays size={18} /><input type="date" min={form.startDate} value={form.endDate} onChange={(event) => setForm({ ...form, endDate: event.target.value })} /></div></label>
             <label className="field"><span>Ngân sách cả nhóm</span><div className="input-wrap"><CircleDollarSign size={18} /><input type="number" min="1" step="10000" value={form.budget} onChange={(event) => setForm({ ...form, budget: Number(event.target.value) })} /><b>VNĐ</b></div></label>
             <label className="field"><span>Số người đi</span><div className="input-wrap"><Users size={18} /><input type="number" min="1" max="10" value={form.travelers} onChange={(event) => setForm({ ...form, travelers: Number(event.target.value) })} /><b>người</b></div></label>
           </div>
-          <p className="form-helper">{destination?.city} cần ít nhất {destination?.minDays} ngày; mỗi kế hoạch hỗ trợ tối đa {MAX_TRIP_DAYS} ngày. Chi phí di chuyển mặc định là ước tính khứ hồi từ Hà Nội.</p>
+          <p className="form-helper">{destination?.city} cần ít nhất {destination?.minDays} ngày; mỗi kế hoạch hỗ trợ tối đa {MAX_TRIP_DAYS} ngày. Chi phí di chuyển được ước tính khứ hồi từ {form.origin} theo khoảng cách.</p>
 
           <div className="form-divider" />
           <div className="form-title"><span>02</span><div><h2>Bạn thích đi như thế nào?</h2><p>Điều chỉnh gợi ý hoạt động và chi phí cơ bản</p></div></div>
@@ -82,6 +89,17 @@ export function CreateTripPage({ form, setForm, onGenerate, formError, onBack, g
               ['Cao cấp', 'Lưu trú & ăn uống cao hơn', '₫₫₫'],
             ].map(([title, description, price]) => <button type="button" onClick={() => setForm({ ...form, style: title })} className={form.style === title ? 'style-option active' : 'style-option'} key={title}><span className="radio-dot" /><div><strong>{title}</strong><small>{description}</small></div><b>{price}</b></button>)}
           </div></div>
+          <label className="ai-request-field">
+            <span><Sparkles size={16} /> Yêu cầu riêng cho TripGenie AI <small>{(form.specialRequest || '').length}/500</small></span>
+            <textarea
+              value={form.specialRequest || ''}
+              maxLength="500"
+              rows="4"
+              onChange={(event) => setForm({ ...form, specialRequest: event.target.value })}
+              placeholder="Ví dụ: Không đi quá sớm, hạn chế đi bộ, ưu tiên chụp ảnh và có món ăn chay."
+            />
+            <small>AI sẽ dùng yêu cầu này để chọn và sắp xếp hoạt động phù hợp hơn.</small>
+          </label>
           {formError && <p className="form-error" role="alert">{formError}</p>}
           {tripQuota && <div className="plan-usage"><span>Gói Free</span><strong>Còn {tripQuota.remaining} lượt tạo chuyến đi</strong></div>}
           {tripQuota && <p className="quota-note">Chuyến đi sẽ được lưu tự động. Lượt chỉ bị trừ nếu tạo và lưu thành công.</p>}
@@ -147,28 +165,45 @@ function ActivityEditor({ activity, onChange, onDone, onDelete }) {
   )
 }
 
-export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpdateActivity, onAddActivity, onDeleteActivity, onDelete, deleting }) {
+export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpdateActivity, onAddActivity, onDeleteActivity, onAiRefineDay, aiRefiningDay, onDelete, deleting }) {
   const [activeDay, setActiveDay] = useState(1)
   const [editingId, setEditingId] = useState(null)
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  const [aiInstruction, setAiInstruction] = useState('')
   const dayData = plan.days.find((day) => day.day === activeDay) || plan.days[0]
   const dayDestination = dayData?.destination || dayData?.city || plan.form.destination
   const destination = findDestination(plan.form.destination)
+  const originPoint = findDeparturePoint(plan.form.origin)
   const dateLabel = `${formatTripDate(plan.form.startDate)} – ${formatTripDate(plan.form.endDate)}`
+  const refiningThisDay = aiRefiningDay === dayData.day
+  const refineDay = async (event) => {
+    event.preventDefault()
+    const updated = await onAiRefineDay(dayData.day, aiInstruction)
+    if (updated) { setAiPanelOpen(false); setAiInstruction('') }
+  }
 
   return (
     <main className="itinerary-page inner-page">
       <section className="trip-banner" style={{ backgroundImage: 'linear-gradient(90deg, rgba(11,38,30,.94), rgba(12,42,34,.78) 57%, rgba(12,42,34,.4)), url(' + (destinationImages[plan.form.destination] || destinationImages['Ninh Bình']) + ')' }}><div className="page-shell banner-inner">
-        <div><span className="eyebrow light"><Compass size={14} /> Kế hoạch gợi ý · miền Bắc</span><h1>{plan.form.destination} — hành trình của bạn</h1><p><CalendarDays size={16} /> {dateLabel} <span /> <Users size={16} /> {plan.form.travelers} người <span /> <WalletCards size={16} /> Ngân sách {formatMoney(plan.form.budget)}</p></div>
+        <div><span className="eyebrow light"><Compass size={14} /> Kế hoạch gợi ý · miền Bắc</span><h1>{plan.form.destination} — hành trình của bạn</h1><p><Navigation size={16} /> {plan.form.origin} → {plan.form.destination} <span /> <CalendarDays size={16} /> {dateLabel} <span /> <Users size={16} /> {plan.form.travelers} người <span /> <WalletCards size={16} /> Ngân sách {formatMoney(plan.form.budget)}</p></div>
         <div className="banner-actions"><button className="secondary-button" onClick={onRegenerate}><RefreshCw size={17} /> Tạo lại</button><button className={saved ? 'primary-button saved' : 'primary-button'} onClick={onSave} disabled={saved || saving || deleting}>{saved ? <Check size={17} /> : <Save size={17} />}{saving ? 'Đang lưu...' : saved ? 'Đã lưu tự động' : 'Lưu thay đổi'}</button>{plan.id && <button type="button" className="delete-plan-button" onClick={onDelete} disabled={deleting || saving} aria-busy={deleting}><Trash2 size={17} /> {deleting ? 'Đang xóa...' : 'Xóa kế hoạch'}</button>}</div>
       </div></section>
 
       <div className="page-shell itinerary-edit-hint" role="status">{saved ? 'Chuyến đi đã được lưu. Bạn có thể sửa hoặc thêm hoạt động bất cứ lúc nào.' : 'Bạn có thay đổi chưa lưu. Hãy bấm “Lưu thay đổi” để giữ lại.'}</div>
+      {plan.form.specialRequest?.trim() && <div className="page-shell"><div className="trip-special-request"><span><Sparkles size={17} /></span><div><small>Yêu cầu riêng của bạn</small><strong>{plan.form.specialRequest.trim()}</strong></div></div></div>}
       <div className="page-shell itinerary-layout">
         <div className="itinerary-main">
           <TripRouteScene days={plan.days} activeDay={dayData.day} destination={dayDestination} />
-          <div className="day-tabs">{plan.days.map((day) => <button className={dayData.day === day.day ? 'active' : ''} onClick={() => { setActiveDay(day.day); setEditingId(null) }} key={day.date}><span>Ngày {day.day}</span><small>{formatTripDate(day.date, { day: '2-digit', month: 'short' })}</small></button>)}</div>
+          <div className="day-tabs">{plan.days.map((day) => <button className={dayData.day === day.day ? 'active' : ''} onClick={() => { setActiveDay(day.day); setEditingId(null); setAiPanelOpen(false); setAiInstruction('') }} key={day.date}><span>Ngày {day.day}</span><small>{formatTripDate(day.date, { day: '2-digit', month: 'short' })}</small></button>)}</div>
+          <TripWeather city={dayDestination} coordinates={destination?.coordinates} date={dayData.date} />
           <section className="timeline-card">
-            <div className="timeline-title"><div><span className="date-box"><strong>{dayData.date.slice(8, 10)}</strong><small>THG {dayData.date.slice(5, 7)}</small></span><div><h2>Ngày {dayData.day} tại {dayDestination}</h2><p>{dayData.label} · {dayData.activities.length} hoạt động</p></div></div><button className="secondary-button small" onClick={() => setEditingId(onAddActivity(dayData.day))}><Plus size={16} /> Thêm hoạt động</button></div>
+            <div className="timeline-title"><div><span className="date-box"><strong>{dayData.date.slice(8, 10)}</strong><small>THG {dayData.date.slice(5, 7)}</small></span><div><h2>Ngày {dayData.day} tại {dayDestination}</h2><p>{dayData.label} · {dayData.activities.length} hoạt động</p></div></div><div className="timeline-day-actions"><button type="button" className="ai-day-button" onClick={() => setAiPanelOpen((open) => !open)} disabled={!plan.id || aiRefiningDay !== null}><Sparkles size={15} /> {refiningThisDay ? 'AI đang chỉnh...' : 'AI chỉnh ngày này'}</button><button className="secondary-button small" onClick={() => setEditingId(onAddActivity(dayData.day))}><Plus size={16} /> Thêm hoạt động</button></div></div>
+            {aiPanelOpen && <form className="ai-day-panel" onSubmit={refineDay}>
+              <div className="ai-day-panel-heading"><div><span><Sparkles size={16} /></span><div><strong>TripGenie AI chỉnh ngày {dayData.day}</strong><small>Mô tả điều bạn muốn thay đổi</small></div></div><button type="button" onClick={() => setAiPanelOpen(false)} aria-label="Đóng phần chỉnh sửa AI"><X size={17} /></button></div>
+              <div className="ai-day-suggestions">{aiDaySuggestions.map((suggestion) => <button type="button" key={suggestion} onClick={() => setAiInstruction(suggestion)}>{suggestion}</button>)}</div>
+              <textarea value={aiInstruction} onChange={(event) => setAiInstruction(event.target.value)} maxLength="300" rows="3" placeholder="Ví dụ: Đổi sang hoạt động ít đi bộ hơn và kết thúc trước 18:00." />
+              <div className="ai-day-panel-footer"><small>{aiInstruction.length}/300 · AI có thể sắp xếp lại giờ nhưng không thay đổi giá</small><button type="submit" disabled={refiningThisDay}>{refiningThisDay ? <><RefreshCw className="spin" size={15} /> Đang xử lý</> : <><Sparkles size={15} /> Tạo đề xuất</>}</button></div>
+            </form>}
             <div className="timeline">
               {dayData.activities.map((activity) => {
                 const displayType = activityTypeForCategory(activity.category, activity.type)
@@ -176,7 +211,7 @@ export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpd
                 return <div className="timeline-item" key={activity.id}>
                   <div className="time"><strong>{activity.time}</strong><small>Ước tính</small></div>
                   <span className={`activity-icon ${displayType}`}><Icon size={18} /></span>
-                  <div className="activity-copy"><h3>{activity.title}</h3><p>{activity.note}</p><span><MapPin size={13} /> {activity.location || dayDestination}, Việt Nam</span>
+                  <div className="activity-copy"><h3>{activity.title}</h3><p>{activity.note}</p><span><MapPin size={13} /> {activity.location || dayDestination}, Việt Nam</span>{activity.sourceUrl && <a className="activity-source-link" href={activity.sourceUrl} target="_blank" rel="noreferrer">Đã xác minh trên {activity.source || 'bản đồ'} ↗</a>}
                     {editingId === activity.id && <ActivityEditor activity={activity} onChange={(changes) => onUpdateActivity(dayData.day, activity.id, changes)} onDone={() => setEditingId(null)} onDelete={() => { onDeleteActivity(dayData.day, activity.id); setEditingId(null) }} />}
                   </div>
                   <div className="activity-cost"><strong>{activity.cost === 0 ? '0đ' : formatMoney(activity.cost)}</strong><button onClick={() => setEditingId(editingId === activity.id ? null : activity.id)} aria-label={`Chỉnh sửa ${activity.title}`}><Pencil size={15} /></button></div>
@@ -186,7 +221,7 @@ export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpd
             <button className="secondary-button add-activity-bottom" onClick={() => setEditingId(onAddActivity(dayData.day))}><Plus size={16} /> Thêm hoạt động</button>
           </section>
         </div>
-        <aside className="itinerary-side"><BudgetPanel plan={plan} /><div className="plan-disclaimer"><strong>Cần kiểm tra trước khi đi</strong><p>Thứ tự tham quan, giờ mở cửa, thời gian di chuyển và giá có thể thay đổi. Đây chưa phải lịch trình đặt chỗ.</p>{destination && <a href={destination.guideUrl} target="_blank" rel="noreferrer">Xem thông tin điểm đến ↗</a>}</div></aside>
+        <aside className="itinerary-side"><TripMap city={plan.form.destination} coordinates={destination?.coordinates} origin={plan.form.origin} originCoordinates={originPoint?.coordinates} day={dayData} /><TransportProviders form={plan.form} /><LodgingProviders form={plan.form} /><BudgetPanel plan={plan} /><div className="plan-disclaimer"><strong>Cần kiểm tra trước khi đi</strong><p>Thứ tự tham quan, giờ mở cửa, thời gian di chuyển và giá có thể thay đổi. Đây chưa phải lịch trình đặt chỗ.</p>{destination && <a href={destination.guideUrl} target="_blank" rel="noreferrer">Xem thông tin điểm đến ↗</a>}</div></aside>
       </div>
     </main>
   )

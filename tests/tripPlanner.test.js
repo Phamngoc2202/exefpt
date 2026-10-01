@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  activityTypeForCategory, addDays, countTripDays, generatePlan, planFromRow, summarizePlan, toCreateSavedTripArgs, toTripPayload, validateTripForm,
+  activityTypeForCategory, addDays, countTripDays, estimateTransferPerPerson, generatePlan, planFromRow, summarizePlan, toCreateSavedTripArgs, toTripPayload, validateTripForm,
 } from '../src/lib/tripPlanner.js'
+import { findDestination } from '../src/data/northernDestinations.js'
 
 const formFor = (destination = 'Ninh Bình', days = 3, travelers = 2, budget = 5000000) => ({
   destination, startDate: '2026-10-20', endDate: addDays('2026-10-20', days - 1),
@@ -16,6 +17,13 @@ test('lịch trình có đúng số ngày và ngày thực tế', () => {
   assert.deepEqual(plan.days.map((day) => day.date), ['2026-10-20', '2026-10-21', '2026-10-22'])
   assert.equal(countTripDays(plan.form.startDate, plan.form.endDate), 3)
   assert.ok(plan.days.every((day) => day.activities.length > 0))
+})
+
+test('hai hoạt động ngày 2 tại Ninh Bình có tọa độ để vẽ tuyến', () => {
+  const day = generatePlan(formFor('Ninh Bình', 3)).days[1]
+  const places = day.activities.filter((activity) => activity.category === 'Hoạt động')
+  assert.equal(places.length, 2)
+  assert.ok(places.every((activity) => Number.isFinite(activity.coordinates?.lat) && Number.isFinite(activity.coordinates?.lng)))
 })
 
 test('chi phí được cộng từ từng hoạt động cộng dự phòng, không dùng tỷ lệ cố định', () => {
@@ -35,6 +43,33 @@ test('chuyến Hà Nội một ngày không tính phòng hay di chuyển liên t
   assert.equal(plan.days.length, 1)
   assert.equal(summary.categories['Lưu trú'], 0)
   assert.equal(plan.days[0].activities.some((activity) => activity.title.includes('Trở về Hà Nội')), false)
+})
+
+test('nhiều địa điểm trong yêu cầu riêng đều được đưa vào lịch trình Hà Nội', () => {
+  const plan = generatePlan({ ...formFor('Hà Nội', 1, 1), specialRequest: 'Tôi cần đến nhà tù Hỏa Lò và Nhà thờ Lớn' })
+  const titles = plan.days.flatMap((day) => day.activities.map((activity) => activity.title))
+  assert.ok(titles.includes('Tham quan Di tích Nhà tù Hỏa Lò'))
+  assert.ok(titles.includes('Tham quan Nhà thờ Lớn Hà Nội'))
+})
+
+test('tạo lại chuyến cũ vẫn hiểu địa điểm được yêu cầu vào ngày 2', () => {
+  const customActivity = {
+    title: 'Tham quan Lăng Bác', aliases: ['Lăng Bác'], costPerPerson: 0,
+    tags: ['Văn hóa'], suggestedDay: 1, note: 'Đã xác minh.', type: 'place', external: true,
+    coordinates: { lat: 21.0368, lng: 105.8347 },
+  }
+  const plan = generatePlan({ ...formFor('Hà Nội', 2), specialRequest: 'Cần có địa điểm Lăng Bác ngày 2' }, { additionalActivities: [customActivity] })
+  assert.equal(plan.days[0].activities.some((activity) => activity.title === customActivity.title), false)
+  assert.equal(plan.days[1].activities.some((activity) => activity.title === customActivity.title), true)
+})
+
+test('điểm xuất phát Hải Phòng được dùng cho chặng đi, chặng về và chi phí', () => {
+  const form = { ...formFor('Ninh Bình', 3, 2), origin: 'Hải Phòng' }
+  const plan = generatePlan(form)
+  const titles = plan.days.flatMap((day) => day.activities.map((activity) => activity.title))
+  assert.ok(titles.includes('Đi từ Hải Phòng đến Ninh Bình'))
+  assert.ok(titles.includes('Trở về Hải Phòng'))
+  assert.ok(estimateTransferPerPerson('Hải Phòng', findDestination('Ninh Bình')) > 0)
 })
 
 test('tour vịnh và hang động đi riêng không bị cộng trùng', () => {
@@ -57,10 +92,12 @@ test('kiểm tra điểm đến, số ngày, số người và ngân sách', () 
   assert.match(validateTripForm(formFor('Ninh Bình', 6)), /tối đa 5 ngày/)
   assert.match(validateTripForm(formFor('Ninh Bình', 3, 0)), /1 đến 10/)
   assert.match(validateTripForm(formFor('Ninh Bình', 3, 2, 0)), /lớn hơn 0/)
+  assert.match(validateTripForm({ ...formFor(), origin: 'Đà Nẵng' }), /điểm xuất phát/)
 })
 
 test('lưu và đọc lại giữ nguyên các ngày, chi phí, số người', () => {
   const plan = generatePlan(formFor('Hạ Long', 2, 3))
+  plan.form.specialRequest = 'Không đi quá sớm và ưu tiên chụp ảnh.'
   plan.generationEventId = 'event-1'
   const payload = toTripPayload(plan, 'user-1')
   const restored = planFromRow({
@@ -70,6 +107,7 @@ test('lưu và đọc lại giữ nguyên các ngày, chi phí, số người', 
   assert.equal(restored.id, 'trip-1')
   assert.equal(restored.generationEventId, 'event-1')
   assert.equal(restored.form.travelers, 3)
+  assert.equal(restored.form.specialRequest, plan.form.specialRequest)
   assert.deepEqual(restored.days, plan.days)
   assert.deepEqual(summarizePlan(restored), summarizePlan(plan))
 })

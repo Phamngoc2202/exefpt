@@ -7,7 +7,7 @@ import PricingPage from './components/PricingPage'
 import './home.css'
 import './travel-polish.css'
 import HomePage from './components/home/HomePage'
-import { activityTypeForCategory, createDefaultForm, generatePlan, planFromRow, toCreateSavedTripArgs, toTripPayload, validateTripForm } from './lib/tripPlanner'
+import { activityTypeForCategory, createDefaultForm, generatePlan, planFromRow, toTripPayload, validateTripForm } from './lib/tripPlanner'
 import { summarizeTripQuota } from './lib/tripQuota'
 import { supabase } from './lib/supabase'
 import tripGenieLogo from './logo/tripgenie-mark.png'
@@ -16,6 +16,28 @@ const protectedPages = new Set(['create', 'itinerary', 'trips'])
 
 function Logo({ onClick }) {
   return <button className="brand" onClick={onClick} aria-label="TripGenie — về trang chủ"><span className="brand-mark"><img src={tripGenieLogo} alt="" /></span><span>TripGenie</span></button>
+}
+
+function AiGeneratingPopup() {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previousOverflow }
+  }, [])
+
+  return <div className="ai-generating-backdrop" aria-busy="true">
+    <section className="ai-generating-popup" role="status" aria-live="polite" aria-label="TripGenie AI đang tạo chuyến đi">
+      <div className="ai-generating-visual" aria-hidden="true">
+        <span className="ai-generating-orbit"><i /><i /><i /></span>
+        <span className="ai-generating-logo"><img src={tripGenieLogo} alt="" /></span>
+      </div>
+      <span className="ai-generating-kicker">TRIPGENIE AI</span>
+      <h2>Đang tạo chuyến đi<br /><em>dành riêng cho bạn.</em></h2>
+      <p>AI đang phân tích sở thích, ngân sách và sắp xếp lịch trình phù hợp.</p>
+      <div className="ai-generating-progress" aria-hidden="true"><span /><span /><span /></div>
+      <small>Vui lòng chờ trong giây lát…</small>
+    </section>
+  </div>
 }
 
 function Header({ page, goTo, onLogin, onAccount, session, isAdmin }) {
@@ -162,12 +184,13 @@ export default function App() {
   const [tripQuota, setTripQuota] = useState(null)
   const [toast, setToast] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [aiRefiningDay, setAiRefiningDay] = useState(null)
   const generationInProgress = useRef(false)
   const isAdmin = Boolean(session?.user?.id && adminUserId === session.user.id)
 
   useEffect(() => {
     if (!toast) return
-    const timer = setTimeout(() => setToast(''), 3800)
+    const timer = setTimeout(() => setToast(''), 6000)
     return () => clearTimeout(timer)
   }, [toast])
 
@@ -246,27 +269,35 @@ export default function App() {
       const error = validateTripForm(form)
       setFormError(error)
       if (error) return
-      const nextPlan = generatePlan(form)
-      const { data: savedRow, error: createError } = await supabase
-        .rpc('create_saved_trip', toCreateSavedTripArgs(nextPlan)).single()
-      if (createError || !savedRow) {
-        if (createError?.message.includes('trip_limit_reached')) {
+      const response = await fetch('/api/generate-itinerary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}` },
+        body: JSON.stringify({ form }),
+      })
+      const payload = await response.json()
+      if (!response.ok || !payload.trip) {
+        if (response.status === 429 || payload.error === 'trip_limit_reached') {
           await refreshTripQuota(data.session.user.id)
           setToast('Bạn đã hết lượt tạo chuyến đi. Xem bảng giá hoặc liên hệ quản trị viên để được cấp thêm lượt.')
           setPage('pricing')
-        } else setToast('Không thể tạo chuyến đi. Hãy kiểm tra Chuyến đi của tôi và cấu hình auto_save.sql trước khi thử lại.')
+        } else setToast(payload.error || 'Không thể tạo chuyến đi lúc này.')
         return
       }
       await refreshTripQuota(data.session.user.id)
       if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         await new Promise((resolve) => setTimeout(resolve, 280))
       }
-      const savedPlan = planFromRow(savedRow)
+      const savedPlan = planFromRow(payload.trip)
       setPlan(savedPlan)
       setTrips((current) => [savedPlan, ...current.filter((trip) => trip.id !== savedPlan.id)])
       setSaved(true)
       setPage('itinerary')
-      setToast('Đã tạo và tự động lưu chuyến đi. Bạn có thể chỉnh sửa lịch trình và chi phí.')
+      const successMessage = payload.aiMessage
+        ? `${payload.aiMessage} Lịch trình đã được tự động lưu.`
+        : payload.generatedByAi
+        ? 'Gemini đã cá nhân hóa và tự động lưu chuyến đi. Bạn có thể chỉnh sửa lịch trình và chi phí.'
+        : 'Đã tạo bằng bộ lập kế hoạch dự phòng và tự động lưu chuyến đi.'
+      setToast(payload.warning ? `${successMessage} ${payload.warning}` : successMessage)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch {
       setToast('Không thể tạo chuyến đi. Hãy kiểm tra Chuyến đi của tôi trước khi thử lại.')
@@ -277,7 +308,28 @@ export default function App() {
   }
   const handleRegenerate = () => {
     if (!plan || !window.confirm('Tạo lại sẽ thay thế các chỉnh sửa chưa lưu. Tiếp tục?')) return
-    setPlan({ ...generatePlan(plan.form), id: plan.id, generationEventId: plan.generationEventId })
+    const additionalActivities = plan.days.flatMap((day) => day.activities
+      .filter((activity) => activity.external && activity.coordinates)
+      .map((activity) => ({
+        title: activity.title,
+        aliases: [activity.title.replace(/^Tham quan\s+/i, '')],
+        costPerPerson: Math.round((Number(activity.cost) || 0) / Math.max(1, Number(plan.form.travelers) || 1)),
+        tags: ['Văn hóa', 'Chụp ảnh'],
+        suggestedDay: day.day,
+        note: activity.note,
+        type: activity.type,
+        location: activity.location,
+        coordinates: activity.coordinates,
+        source: activity.source,
+        sourceUrl: activity.sourceUrl,
+        external: true,
+      })))
+    const requestedActivitiesByDay = {}
+    plan.days.forEach((day) => {
+      const titles = day.activities.filter((activity) => activity.requestedDay === day.day).map((activity) => activity.title)
+      if (titles.length) requestedActivitiesByDay[day.day] = titles
+    })
+    setPlan({ ...generatePlan(plan.form, { additionalActivities, requestedActivitiesByDay }), id: plan.id, generationEventId: plan.generationEventId })
     setSaved(false)
     setToast('Đã tạo lại lịch trình. Hãy kiểm tra và lưu nếu muốn giữ bản mới.')
   }
@@ -303,6 +355,39 @@ export default function App() {
     if (!window.confirm('Xóa hoạt động này khỏi lịch trình?')) return
     setPlan((current) => ({ ...current, days: current.days.map((day) => day.day !== dayNumber ? day : { ...day, activities: day.activities.filter((activity) => activity.id !== activityId) }) }))
     setSaved(false)
+  }
+  const handleAiRefineDay = async (dayNumber, instruction) => {
+    if (!plan?.id || aiRefiningDay !== null) return false
+    const { data: authData } = await supabase.auth.getSession()
+    if (!authData.session) { openRegistrationFor('itinerary'); return false }
+    const currentDay = plan.days.find((day) => day.day === dayNumber)
+    if (!currentDay) return false
+    const otherActivityTitles = plan.days
+      .filter((day) => day.day !== dayNumber)
+      .flatMap((day) => day.activities.filter((activity) => activity.category === 'Hoạt động').map((activity) => activity.title))
+
+    setAiRefiningDay(dayNumber)
+    try {
+      const response = await fetch('/api/refine-itinerary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authData.session.access_token}` },
+        body: JSON.stringify({ tripId: plan.id, form: plan.form, dayNumber, currentDay, otherActivityTitles, instruction }),
+      })
+      const payload = await response.json()
+      if (!response.ok || !payload.day || payload.day.day !== dayNumber) {
+        setToast(payload.error || 'TripGenie AI chưa thể chỉnh ngày này.')
+        return false
+      }
+      setPlan((current) => ({ ...current, days: current.days.map((day) => day.day === dayNumber ? payload.day : day) }))
+      setSaved(false)
+      setToast(payload.explanation ? `AI đề xuất: ${payload.explanation}` : `AI đã chỉnh lịch trình ngày ${dayNumber}. Hãy kiểm tra và lưu thay đổi.`)
+      return true
+    } catch {
+      setToast('Không thể kết nối TripGenie AI. Vui lòng thử lại.')
+      return false
+    } finally {
+      setAiRefiningDay(null)
+    }
   }
   const handleSave = async () => {
     if (!plan || saving) return
@@ -367,13 +452,14 @@ export default function App() {
     <Header page={page} goTo={goTo} onLogin={openLogin} onAccount={() => setAccountOpen(true)} session={session} isAdmin={isAdmin} />
     {page === 'home' && <HomePage goTo={goTo} form={form} setForm={updateForm} />}
     {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} formError={formError} onBack={() => goTo('home')} generating={generating} tripQuota={tripQuota} onSeePlans={() => goTo('pricing')} />}
-    {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} />}
+    {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onAiRefineDay={handleAiRefineDay} aiRefiningDay={aiRefiningDay} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} />}
     {page === 'trips' && <TripsPage trips={trips} goTo={goTo} onOpen={handleOpenTrip} onDelete={handleDeleteTrip} deletingId={deletingId} />}
     {page === 'pricing' && <PricingPage goTo={goTo} tripQuota={tripQuota} session={session} />}
     {page === 'admin' && (isAdmin ? <AdminPage currentUserId={session.user.id} /> : <main className="page-shell inner-page"><h1>Không có quyền truy cập</h1><p>Vui lòng đăng nhập bằng tài khoản quản trị.</p></main>)}
     <Footer goTo={goTo} />
     {loginOpen && <LoginModal onClose={closeLogin} initialMode={authMode} />}
     {accountOpen && session && <AccountModal session={session} isAdmin={isAdmin} tripQuota={tripQuota} savedTripCount={trips.length} onClose={() => setAccountOpen(false)} onLogout={handleLogout} onUserUpdated={updateSessionUser} />}
+    {generating && <AiGeneratingPopup />}
     {toast && <button className="toast" onClick={() => setToast('')}><Check size={16} /> {toast}<X size={15} /></button>}
   </div>
 }

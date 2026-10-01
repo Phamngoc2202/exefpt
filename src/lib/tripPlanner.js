@@ -1,4 +1,5 @@
 import { findDestination } from '../data/northernDestinations.js'
+import { findDeparturePoint } from '../data/departurePoints.js'
 
 export const MAX_TRIP_DAYS = 5
 export const COST_CATEGORIES = ['Di chuyển', 'Lưu trú', 'Ăn uống', 'Hoạt động']
@@ -42,13 +43,14 @@ export function createDefaultForm() {
   return {
     destination: 'Ninh Bình', startDate, endDate: addDays(startDate, 2), budget: 5000000,
     origin: 'Hà Nội', travelers: 2, travelWith: 'Cặp đôi',
-    interests: ['Ẩm thực', 'Thiên nhiên', 'Chụp ảnh'], style: 'Cân bằng',
+    interests: ['Ẩm thực', 'Thiên nhiên', 'Chụp ảnh'], style: 'Cân bằng', specialRequest: '',
   }
 }
 
 export function validateTripForm(form) {
   const destination = findDestination(form.destination)
   if (!destination) return 'Hãy chọn một trong 5 điểm đến miền Bắc đang được hỗ trợ.'
+  if (!findDeparturePoint(form.origin)) return 'Hãy chọn một điểm xuất phát đang được TripGenie hỗ trợ.'
   if (!form.startDate || !form.endDate) return 'Vui lòng chọn ngày bắt đầu và ngày kết thúc.'
   const days = countTripDays(form.startDate, form.endDate)
   if (days < 1) return 'Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.'
@@ -58,17 +60,45 @@ export function validateTripForm(form) {
     return 'Số người đi phải từ 1 đến 10.'
   }
   if (!Number.isFinite(Number(form.budget)) || Number(form.budget) <= 0) return 'Ngân sách phải lớn hơn 0.'
+  if (String(form.specialRequest || '').length > 500) return 'Yêu cầu riêng không được vượt quá 500 ký tự.'
   return ''
 }
 
-function createActivity(id, time, title, category, cost, note = '', type = 'place') {
-  return { id, time, title, category, cost: Math.max(0, Math.round(cost)), note, type }
+function createActivity(id, time, title, category, cost, note = '', type = 'place', metadata = {}) {
+  return { id, time, title, category, cost: Math.max(0, Math.round(cost)), note, type, ...metadata }
 }
 
-function pickAttraction(destination, interests, day, usedTitles, remainingBudget, travelers) {
-  const candidates = destination.activities.filter((activity) => !usedTitles.has(activity.title) && !usedTitles.has(activity.exclusiveWith))
-  const score = (activity) =>
-    activity.tags.filter((tag) => interests.includes(tag)).length * 10 - Math.abs(activity.suggestedDay - day) * 4
+function distanceInKm(from, to) {
+  const radians = (degrees) => degrees * Math.PI / 180
+  const earthRadius = 6371
+  const latitudeDelta = radians(to.lat - from.lat)
+  const longitudeDelta = radians(to.lng - from.lng)
+  const a = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(radians(from.lat)) * Math.cos(radians(to.lat)) * Math.sin(longitudeDelta / 2) ** 2
+  return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+export function estimateTransferPerPerson(originName, destination) {
+  if (!destination || originName === destination.city) return 0
+  const origin = findDeparturePoint(originName)
+  const hanoi = findDeparturePoint('Hà Nội')
+  if (!origin || !destination.coordinates) return destination?.transportPerPerson || 0
+
+  const distance = distanceInKm(origin.coordinates, destination.coordinates)
+  const hanoiDistance = distanceInKm(hanoi.coordinates, destination.coordinates)
+  const calibratedRate = destination.transportPerPerson > 0 && hanoiDistance > 20
+    ? destination.transportPerPerson / hanoiDistance
+    : 3000
+  return Math.max(100000, Math.round(distance * calibratedRate / 50000) * 50000)
+}
+
+function pickAttraction(destination, interests, day, usedTitles, remainingBudget, travelers, preferredTitles = [], excludedTitles = new Set()) {
+  const candidates = destination.activities.filter((activity) => !usedTitles.has(activity.title) && !usedTitles.has(activity.exclusiveWith) && !excludedTitles.has(activity.title))
+  const score = (activity) => {
+    const preferredIndex = preferredTitles.indexOf(activity.title)
+    const preferredScore = preferredIndex < 0 ? 0 : 1000 - preferredIndex * 10
+    return preferredScore + activity.tags.filter((tag) => interests.includes(tag)).length * 10 - Math.abs(activity.suggestedDay - day) * 4
+  }
   candidates.sort((a, b) => score(b) - score(a) || a.costPerPerson - b.costPerPerson)
   const affordable = candidates.find((activity) => activity.costPerPerson * travelers <= remainingBudget)
   const chosen = affordable || [...candidates].sort((a, b) => a.costPerPerson - b.costPerPerson)[0]
@@ -76,16 +106,67 @@ function pickAttraction(destination, interests, day, usedTitles, remainingBudget
   return chosen
 }
 
-export function generatePlan(form) {
+function normalizeSearchText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+export function findRequestedActivityTitles(specialRequest, destination) {
+  const normalizedRequest = normalizeSearchText(specialRequest)
+  if (!normalizedRequest || !destination?.activities) return []
+
+  return destination.activities
+    .map((activity) => {
+      const positions = [activity.title, ...(activity.aliases || [])]
+        .map((name) => normalizedRequest.indexOf(normalizeSearchText(name)))
+        .filter((position) => position >= 0)
+      return positions.length ? { title: activity.title, position: Math.min(...positions) } : null
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.position - b.position)
+    .map(({ title }) => title)
+}
+
+export function inferRequestedActivitiesByDay(specialRequest, destination, dayCount) {
+  const normalizedRequest = normalizeSearchText(specialRequest)
+  if (!normalizedRequest || !destination?.activities) return {}
+  const matches = destination.activities
+    .map((activity) => {
+      const positions = [activity.title, ...(activity.aliases || [])]
+        .map((name) => normalizedRequest.indexOf(normalizeSearchText(name)))
+        .filter((position) => position >= 0)
+      return positions.length ? { title: activity.title, position: Math.min(...positions) } : null
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.position - b.position)
+  const result = {}
+  matches.forEach((match, index) => {
+    const segment = normalizedRequest.slice(match.position, matches[index + 1]?.position ?? normalizedRequest.length)
+    const requestedDay = Number(segment.match(/\bngay(?: thu)?\s*(\d+)\b/)?.[1])
+    if (!Number.isInteger(requestedDay) || requestedDay < 1 || requestedDay > dayCount) return
+    result[requestedDay] ||= []
+    result[requestedDay].push(match.title)
+  })
+  return result
+}
+
+export function generatePlan(form, options = {}) {
   const error = validateTripForm(form)
   if (error) throw new Error(error)
 
-  const destination = findDestination(form.destination)
+  const baseDestination = findDestination(form.destination)
+  const additionalActivities = Array.isArray(options.additionalActivities) ? options.additionalActivities : []
+  const destination = { ...baseDestination, activities: [...additionalActivities, ...baseDestination.activities] }
   const dayCount = countTripDays(form.startDate, form.endDate)
   const travelers = Number(form.travelers)
   const rooms = Math.ceil(travelers / 2)
   const style = styleEstimates[form.style] || styleEstimates['Cân bằng']
-  const transferCost = destination.transportPerPerson * travelers
+  const transferCost = estimateTransferPerPerson(form.origin, destination) * travelers
   const localCost = destination.localPerPersonPerDay * travelers
   const lodgingCost = form.destination === form.origin ? 0 : style.roomPerNight * rooms
   const lunchCost = style.lunchPerPerson * travelers
@@ -94,35 +175,49 @@ export function generatePlan(form) {
     + lunchCost * dayCount + dinnerCost * (dayCount - 1)
   let attractionBudget = Math.max(0, Number(form.budget) - fixedCost - Math.round(Number(form.budget) * 0.1))
   const usedTitles = new Set()
+  const requestedTitles = findRequestedActivityTitles(form.specialRequest, destination)
+  for (const activity of additionalActivities) {
+    if (!requestedTitles.includes(activity.title)) requestedTitles.push(activity.title)
+  }
+  const inferredRequestedActivitiesByDay = inferRequestedActivitiesByDay(form.specialRequest, destination, dayCount)
+  const requestedActivitiesByDay = { ...inferredRequestedActivitiesByDay }
+  for (const [day, titles] of Object.entries(options.requestedActivitiesByDay || {})) {
+    requestedActivitiesByDay[day] = [...new Set([...(requestedActivitiesByDay[day] || []), ...titles])]
+  }
+  const datedRequestedTitles = new Set(Object.values(requestedActivitiesByDay).flat())
+  const undatedRequestedTitles = requestedTitles.filter((title) => !datedRequestedTitles.has(title))
 
   const days = Array.from({ length: dayCount }, (_, index) => {
     const day = index + 1
+    const requestedToday = requestedActivitiesByDay[day] || []
+    const preferredTitles = [...requestedToday, ...undatedRequestedTitles, ...(options.preferredActivitiesByDay?.[day] || [])]
+    const reservedForOtherDays = new Set([...datedRequestedTitles].filter((title) => !requestedToday.includes(title)))
     const isFirst = index === 0
     const isLast = index === dayCount - 1
     const date = addDays(form.startDate, index)
     const activities = []
 
     if (isFirst && transferCost > 0) {
-      activities.push(createActivity(`${date}-outbound`, '07:00', `Đi từ Hà Nội đến ${destination.city}`, 'Di chuyển', Math.round(transferCost / 2), 'Ước tính một chiều cho cả nhóm.', 'transport'))
+      activities.push(createActivity(`${date}-outbound`, '07:00', `Đi từ ${form.origin} đến ${destination.city}`, 'Di chuyển', Math.round(transferCost / 2), 'Ước tính một chiều cho cả nhóm theo khoảng cách.', 'transport'))
     }
     activities.push(createActivity(`${date}-local`, isFirst ? destination.arrivalTime : '08:00', 'Di chuyển trong ngày', 'Di chuyển', localCost, 'Ước tính phương tiện tại điểm đến cho cả nhóm.', 'transport'))
 
     const morningAvailable = !isFirst || destination.arrivalTime < '12:00'
     if (morningAvailable) {
-      const morning = pickAttraction(destination, form.interests, day, usedTitles, attractionBudget, travelers)
+      const morning = pickAttraction(destination, form.interests, day, usedTitles, attractionBudget, travelers, preferredTitles, reservedForOtherDays)
       if (morning) {
         const cost = morning.costPerPerson * travelers
         attractionBudget -= cost
-        activities.push(createActivity(`${date}-morning`, isFirst ? '10:30' : '09:00', morning.title, 'Hoạt động', cost, morning.note || 'Chi phí tham quan ước tính cho cả nhóm.', morning.type))
+        activities.push(createActivity(`${date}-morning`, isFirst ? '10:30' : '09:00', morning.title, 'Hoạt động', cost, morning.note || 'Chi phí tham quan ước tính cho cả nhóm.', morning.type, { searchName: morning.searchName || morning.aliases?.[0] || morning.title, location: morning.location, coordinates: morning.coordinates, source: morning.source, sourceUrl: morning.sourceUrl, external: morning.external, requestedDay: requestedToday.includes(morning.title) ? day : undefined }))
       }
     }
 
     activities.push(createActivity(`${date}-lunch`, isFirst && !morningAvailable ? '14:15' : '12:00', 'Ăn trưa địa phương', 'Ăn uống', lunchCost, `Ước tính ${travelers} người.`, 'food'))
-    const afternoon = pickAttraction(destination, form.interests, day, usedTitles, attractionBudget, travelers)
+    const afternoon = pickAttraction(destination, form.interests, day, usedTitles, attractionBudget, travelers, preferredTitles, reservedForOtherDays)
     if (afternoon) {
       const cost = afternoon.costPerPerson * travelers
       attractionBudget -= cost
-      activities.push(createActivity(`${date}-afternoon`, isFirst && !morningAvailable ? '15:30' : '14:00', afternoon.title, 'Hoạt động', cost, afternoon.note || 'Chi phí tham quan ước tính cho cả nhóm.', afternoon.type))
+      activities.push(createActivity(`${date}-afternoon`, isFirst && !morningAvailable ? '15:30' : '14:00', afternoon.title, 'Hoạt động', cost, afternoon.note || 'Chi phí tham quan ước tính cho cả nhóm.', afternoon.type, { searchName: afternoon.searchName || afternoon.aliases?.[0] || afternoon.title, location: afternoon.location, coordinates: afternoon.coordinates, source: afternoon.source, sourceUrl: afternoon.sourceUrl, external: afternoon.external, requestedDay: requestedToday.includes(afternoon.title) ? day : undefined }))
     }
 
     if (!isLast) {
@@ -131,11 +226,11 @@ export function generatePlan(form) {
         activities.push(createActivity(`${date}-hotel`, '20:00', 'Lưu trú qua đêm', 'Lưu trú', lodgingCost, `Ước tính ${rooms} phòng (2 người/phòng).`, 'hotel'))
       }
     } else if (transferCost > 0) {
-      activities.push(createActivity(`${date}-return`, '18:30', 'Trở về Hà Nội', 'Di chuyển', transferCost - Math.round(transferCost / 2), 'Ước tính một chiều cho cả nhóm.', 'transport'))
+      activities.push(createActivity(`${date}-return`, '18:30', `Trở về ${form.origin}`, 'Di chuyển', transferCost - Math.round(transferCost / 2), 'Ước tính một chiều cho cả nhóm theo khoảng cách.', 'transport'))
     }
 
     activities.sort((a, b) => a.time.localeCompare(b.time))
-    return { day, date, label: isFirst ? 'Khởi hành và khám phá' : isLast ? 'Khám phá và trở về' : 'Khám phá theo sở thích', activities }
+    return { day, date, label: options.labelsByDay?.[day] || (isFirst ? 'Khởi hành và khám phá' : isLast ? 'Khám phá và trở về' : 'Khám phá theo sở thích'), activities }
   })
 
   return { id: null, form: { ...form, travelers }, days }
@@ -171,6 +266,7 @@ export function planFromRow(row) {
     destination: row.destination, startDate: row.start_date, endDate: row.end_date,
     budget: Number(row.budget), origin: isV2 ? stored.origin || 'Hà Nội' : 'Hà Nội', travelers,
     travelWith: row.travel_with || 'Cặp đôi', style: row.travel_style || 'Cân bằng', interests: row.interests || [],
+    specialRequest: isV2 ? stored.specialRequest || '' : '',
   }
   const days = rawDays.map((day, index) => ({
     ...day,
@@ -195,7 +291,7 @@ export function toTripPayload(plan, userId) {
     user_id: userId, generation_event_id: plan.generationEventId || null,
     destination: form.destination, start_date: form.startDate, end_date: form.endDate,
     budget: form.budget, travel_with: form.travelWith, travel_style: form.style,
-    interests: form.interests, itinerary: { version: 2, origin: form.origin, travelers: form.travelers, days: plan.days },
+    interests: form.interests, itinerary: { version: 2, origin: form.origin, travelers: form.travelers, specialRequest: form.specialRequest || '', days: plan.days },
     budget_plan: summarizePlan(plan),
   }
 }
