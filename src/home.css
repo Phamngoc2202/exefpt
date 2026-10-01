@@ -294,6 +294,24 @@
 .feature-gallery .destination-card:not(:first-child) .destination-content > span:not(.destination-estimate) { display: none; }
 .feature-gallery .destination-card:not(:first-child) .destination-actions { margin-top: 8px; }
 
+.home-trust { background: rgba(247,250,248,.96); }
+.trust-heading { display: flex; align-items: end; justify-content: space-between; gap: 45px; margin-bottom: 28px; }
+.trust-heading .home-section-label { gap: 7px; }
+.trust-heading h2 { margin: 13px 0 0; font-size: clamp(29px, 3vw, 46px); letter-spacing: -.04em; line-height: 1.12; }
+.trust-heading h2 em { color: #087e82; font-family: var(--font-editorial); font-style: italic; font-weight: 600; }
+.trust-heading > p { max-width: 410px; margin: 0; color: #60777a; font-size: 13px; line-height: 1.7; }
+.trust-provider-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid #cbdedb; border-bottom: 1px solid #cbdedb; }
+.trust-provider-grid a { min-width: 0; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; min-height: 92px; padding: 18px 20px; border-right: 1px solid #d4e4e1; color: #153d45; text-decoration: none; transition: background .2s ease, color .2s ease; }
+.trust-provider-grid a:last-child { border-right: 0; }
+.trust-provider-grid a > svg:first-child { color: #0b8085; }
+.trust-provider-grid a > svg:last-child { color: #86a1a2; }
+.trust-provider-grid a span { min-width: 0; display: grid; gap: 3px; }
+.trust-provider-grid strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.trust-provider-grid small { color: #789092; font-size: 9px; }
+.trust-provider-grid a:hover, .trust-provider-grid a:focus-visible { background: #e5f5f1; color: #087078; }
+.trust-disclaimer { display: flex; align-items: center; gap: 7px; margin: 14px 0 0; color: #748a8d; font-size: 9px; }
+.trust-disclaimer svg { color: #3c8c78; }
+
 .home-planner { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: clamp(45px, 7vw, 110px); background: rgba(11, 54, 65, .92); color: white; }
 .home-planner .home-section-label { color: #8fdfd7; }
 .home-planner h2 { margin-top: 23px; }
@@ -387,7 +405,7 @@
 .home-reveal.will-reveal { transition: opacity .55s ease; }
 
 @media (min-width: 761px) {
-  .immersive-home > section:not(.home-hero):not(.home-final-cta):not(.home-explore) { min-height: 100svh; }
+  .immersive-home > section:not(.home-hero):not(.home-final-cta):not(.home-explore):not(.home-trust) { min-height: 100svh; }
   .home-explore { display: flex; flex-direction: column; justify-content: flex-start; }
   .home-featured, .home-how, .home-news { display: flex; flex-direction: column; justify-content: center; }
   .home-how { justify-content: space-evenly; }
@@ -432,6 +450,9 @@
   .feature-gallery { grid-template-columns: 1fr 1fr; grid-template-rows: 345px 280px; }
   .feature-gallery .destination-card:first-child { grid-column: span 2; grid-row: auto; height: 345px; }
   .feature-gallery .destination-card:not(:first-child) { height: 280px; }
+  .trust-provider-grid { grid-template-columns: repeat(2, 1fr); }
+  .trust-provider-grid a:nth-child(2) { border-right: 0; }
+  .trust-provider-grid a:nth-child(-n+2) { border-bottom: 1px solid #d4e4e1; }
   .home-planner { grid-template-columns: 1fr; }
   .home-planner h2 { margin-top: 22px; }
   .planner-orbit { display: none; }
@@ -473,6 +494,11 @@
   .feature-gallery .destination-card:first-child,
   .feature-gallery .destination-card:not(:first-child) { flex: none; height: 340px; }
   .feature-gallery .destination-card:first-child .destination-content strong { font-size: 32px; }
+  .trust-heading { display: block; }
+  .trust-heading > p { margin-top: 18px; }
+  .trust-provider-grid { grid-template-columns: 1fr; }
+  .trust-provider-grid a, .trust-provider-grid a:nth-child(2) { border-right: 0; border-bottom: 1px solid #d4e4e1; }
+  .trust-provider-grid a:last-child { border-bottom: 0; }
   .home-command-form { padding: 21px; }
   .command-fields { grid-template-columns: 1fr; }
   .command-fields .command-budget { grid-column: auto; }

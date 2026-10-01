@@ -1,9 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { ArrowRight, CalendarDays, Check, KeyRound, LogOut, Mail, Menu, RefreshCw, ShieldCheck, UserRound, X } from 'lucide-react'
 import './App.css'
-import { CreateTripPage, ItineraryPage, TripsPage } from './components/TripPages'
-import AdminPage from './components/AdminPage'
-import PricingPage from './components/PricingPage'
 import './home.css'
 import './travel-polish.css'
 import HomePage from './components/home/HomePage'
@@ -11,6 +8,13 @@ import { activityTypeForCategory, createDefaultForm, generatePlan, planFromRow, 
 import { summarizeTripQuota } from './lib/tripQuota'
 import { supabase } from './lib/supabase'
 import tripGenieLogo from './logo/tripgenie-mark.png'
+
+const DestinationDetailPage = lazy(() => import('./components/DestinationDetailPage'))
+const AdminPage = lazy(() => import('./components/AdminPage'))
+const PricingPage = lazy(() => import('./components/PricingPage'))
+const CreateTripPage = lazy(() => import('./components/TripPages').then((module) => ({ default: module.CreateTripPage })))
+const ItineraryPage = lazy(() => import('./components/TripPages').then((module) => ({ default: module.ItineraryPage })))
+const TripsPage = lazy(() => import('./components/TripPages').then((module) => ({ default: module.TripsPage })))
 
 const protectedPages = new Set(['create', 'itinerary', 'trips'])
 
@@ -65,7 +69,7 @@ function Header({ page, goTo, onLogin, onAccount, session, isAdmin }) {
   return <header className={['site-header', page === 'home' ? 'home-header' : '', scrolled ? 'scrolled' : ''].filter(Boolean).join(' ')}><div className="nav-shell">
     <Logo onClick={() => navigate('home')} />
     <nav className={open ? 'nav-links open' : 'nav-links'}>
-      <button className={page === 'home' ? 'active' : ''} onClick={() => navigate('home')}>Khám phá</button>
+      <button className={page === 'home' || page === 'destination' ? 'active' : ''} onClick={() => navigate('home')}>Khám phá</button>
       <button className={page === 'create' ? 'active' : ''} onClick={() => navigate('create')}>Lên kế hoạch</button>
       <button className={page === 'trips' ? 'active' : ''} onClick={() => navigate('trips')}>Chuyến đi của tôi</button>
       <button className={page === 'pricing' ? 'active' : ''} onClick={() => navigate('pricing')}>Bảng giá</button>
@@ -180,6 +184,7 @@ function Footer({ goTo }) {
 
 export default function App() {
   const [page, setPage] = useState('home')
+  const [selectedDestination, setSelectedDestination] = useState('Sa Pa')
   const [form, setForm] = useState(createDefaultForm)
   const [formError, setFormError] = useState('')
   const [plan, setPlan] = useState(null)
@@ -253,7 +258,8 @@ export default function App() {
     if (!error) setTripQuota(summarizeTripQuota(data))
   }
   const openRegistrationFor = (target) => { setPendingPage(target); setAuthMode('register'); setLoginOpen(true) }
-  const goTo = async (target) => {
+  const goTo = async (target, destinationCity) => {
+    if (target === 'destination' && destinationCity) setSelectedDestination(destinationCity)
     if (target === 'admin') {
       const { data: authData } = await supabase.auth.getSession()
       if (!authData.session) { openLogin(); return }
@@ -271,6 +277,10 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
   const updateForm = (nextForm) => { setForm(nextForm); setFormError('') }
+  const handlePlanDestination = async (city) => {
+    setForm((current) => ({ ...current, destination: city }))
+    await goTo('create')
+  }
   const handleGenerate = async () => {
     if (generationInProgress.current) return
     generationInProgress.current = true
@@ -462,12 +472,15 @@ export default function App() {
 
   return <div className="app">
     <Header page={page} goTo={goTo} onLogin={openLogin} onAccount={() => setAccountOpen(true)} session={session} isAdmin={isAdmin} />
-    {page === 'home' && <HomePage goTo={goTo} form={form} setForm={updateForm} />}
-    {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} formError={formError} onBack={() => goTo('home')} generating={generating} tripQuota={tripQuota} onSeePlans={() => goTo('pricing')} />}
-    {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onAiRefineDay={handleAiRefineDay} aiRefiningDay={aiRefiningDay} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} />}
-    {page === 'trips' && <TripsPage trips={trips} goTo={goTo} onOpen={handleOpenTrip} onDelete={handleDeleteTrip} deletingId={deletingId} />}
-    {page === 'pricing' && <PricingPage goTo={goTo} tripQuota={tripQuota} session={session} />}
-    {page === 'admin' && (isAdmin ? <AdminPage currentUserId={session.user.id} /> : <main className="page-shell inner-page"><h1>Không có quyền truy cập</h1><p>Vui lòng đăng nhập bằng tài khoản quản trị.</p></main>)}
+    <Suspense fallback={<main className="page-shell inner-page">Đang mở trang...</main>}>
+      {page === 'home' && <HomePage goTo={goTo} form={form} setForm={updateForm} onExplore={(city) => goTo('destination', city)} />}
+      {page === 'destination' && <DestinationDetailPage city={selectedDestination} onBack={() => goTo('home')} onPlan={handlePlanDestination} />}
+      {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} formError={formError} onBack={() => goTo('home')} generating={generating} tripQuota={tripQuota} onSeePlans={() => goTo('pricing')} />}
+      {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onAiRefineDay={handleAiRefineDay} aiRefiningDay={aiRefiningDay} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} />}
+      {page === 'trips' && <TripsPage trips={trips} goTo={goTo} onOpen={handleOpenTrip} onDelete={handleDeleteTrip} deletingId={deletingId} />}
+      {page === 'pricing' && <PricingPage goTo={goTo} tripQuota={tripQuota} session={session} />}
+      {page === 'admin' && (isAdmin ? <AdminPage currentUserId={session.user.id} /> : <main className="page-shell inner-page"><h1>Không có quyền truy cập</h1><p>Vui lòng đăng nhập bằng tài khoản quản trị.</p></main>)}
+    </Suspense>
     <Footer goTo={goTo} />
     <ZaloContact />
     {loginOpen && <LoginModal onClose={closeLogin} initialMode={authMode} />}

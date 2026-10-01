@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { ArrowDown, ArrowRight, ArrowUpRight, CalendarDays, Clock, Compass, ExternalLink, MapPin, Newspaper, Sparkles, Users, WalletCards } from 'lucide-react'
+import { ArrowDown, ArrowRight, ArrowUpRight, CalendarDays, Clock, CloudSun, Compass, ExternalLink, Map, MapPin, Newspaper, Route, ShieldCheck, Sparkles, Users, WalletCards } from 'lucide-react'
 import TravelScene from '../3d/TravelScene'
 import JourneyGlobe from '../3d/JourneyGlobe'
 import PersistentTravelScene from '../3d/PersistentTravelScene'
 import DestinationCard from '../DestinationCard'
-import { destinationImages } from '../../data/destinationImages'
+import { destinationImages, destinationImageSets } from '../../data/destinationImages'
 import { destinationNames, northernDestinations } from '../../data/northernDestinations'
 import { departurePointNames } from '../../data/departurePoints'
 import { addDays, countTripDays, createDefaultForm, generatePlan, summarizePlan } from '../../lib/tripPlanner'
@@ -27,10 +27,11 @@ const formatNewsDate = (value) => {
   return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
 }
 
-export default function HomePage({ goTo, form, setForm }) {
+export default function HomePage({ goTo, form, setForm, onExplore }) {
   const [activeDestination, setActiveDestination] = useState('Ninh Bình')
   const [travelNews, setTravelNews] = useState({ articles: [], loading: true, error: '' })
   const active = northernDestinations.find((destination) => destination.city === activeDestination) || northernDestinations[0]
+  const activeImageSet = destinationImageSets[active.city]
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
@@ -109,14 +110,24 @@ export default function HomePage({ goTo, form, setForm }) {
           <p>Mộc Châu và Cao Bằng sẽ được bổ sung khi có dữ liệu lịch trình và chi phí phù hợp.</p>
         </div>
         <div className="explore-stage" id="explore-panel" role="tabpanel" aria-label={active.city}>
-          <img key={active.city} src={destinationImages[active.city]} alt={'Phong cảnh ' + active.city} loading="lazy" />
+          <img
+            key={active.city}
+            src={destinationImages[active.city]}
+            srcSet={activeImageSet ? `${activeImageSet.small} 800w, ${activeImageSet.large} 1600w` : undefined}
+            sizes="(max-width: 760px) 100vw, 64vw"
+            width="1600"
+            height="1067"
+            alt={'Phong cảnh ' + active.city}
+            loading="lazy"
+            decoding="async"
+          />
           <div className="explore-stage-overlay" />
           <span className="explore-stage-index">{String(northernDestinations.indexOf(active) + 1).padStart(2, '0')} / 05</span>
           <div className="explore-stage-copy">
             <span>EXPLORE NORTHERN VIETNAM</span>
             <h3>{active.city}</h3>
             <p>{active.meta}</p>
-            <div><a href={active.guideUrl} target="_blank" rel="noreferrer">Tìm hiểu địa điểm <ArrowUpRight size={17} /></a><button type="button" onClick={() => selectDestination(active.city)}>Lên kế hoạch <ArrowRight size={17} /></button></div>
+            <div><button type="button" onClick={() => onExplore(active.city)}>Tìm hiểu địa điểm <ArrowUpRight size={17} /></button><button type="button" onClick={() => selectDestination(active.city)}>Lên kế hoạch <ArrowRight size={17} /></button></div>
           </div>
         </div>
       </div>
@@ -125,9 +136,20 @@ export default function HomePage({ goTo, form, setForm }) {
     <section className="home-featured home-section home-reveal" aria-labelledby="featured-heading">
       <div className="featured-heading"><div><span className="home-section-label">02 / ĐIỂM ĐẾN NỔI BẬT</span><h2 id="featured-heading">Đi xa hơn <em>một chút.</em></h2></div><p>Chọn hành trình theo cảnh sắc bạn yêu. Chi phí bên dưới được tính từ dữ liệu ước tính hiện có của TripGenie.</p></div>
       <div className="feature-gallery">
-        {featured.map((destination, index) => <DestinationCard key={destination.city} destination={destination} index={index} estimate={destinationEstimates[destination.city]} onPlan={selectDestination} onPreview={setActiveDestination} />)}
+        {featured.map((destination, index) => <DestinationCard key={destination.city} destination={destination} index={index} estimate={destinationEstimates[destination.city]} onPlan={selectDestination} onPreview={setActiveDestination} onExplore={onExplore} />)}
       </div>
       <p className="destination-estimate-note">* Chi phí mẫu theo phong cách cân bằng, 1 người, khởi hành từ Hà Nội; chưa tính dự phòng. Giá thực tế có thể thay đổi.</p>
+    </section>
+
+    <section className="home-trust home-section home-reveal" aria-labelledby="trust-heading">
+      <div className="trust-heading"><div><span className="home-section-label"><ShieldCheck size={15} /> NGUỒN DỮ LIỆU MINH BẠCH</span><h2 id="trust-heading">Gợi ý có nguồn.<br /><em>Quyết định vẫn là của bạn.</em></h2></div><p>TripGenie kết hợp dữ liệu mở với AI để tạo gợi ý tham khảo. Giá, thời tiết và khả năng cung cấp dịch vụ có thể thay đổi trước ngày đi.</p></div>
+      <div className="trust-provider-grid">
+        <a href="https://open-meteo.com/" target="_blank" rel="noreferrer"><CloudSun size={22} /><span><strong>Open‑Meteo</strong><small>Dự báo thời tiết</small></span><ArrowUpRight size={14} /></a>
+        <a href="https://www.openstreetmap.org/" target="_blank" rel="noreferrer"><Map size={22} /><span><strong>OpenStreetMap</strong><small>Địa điểm và bản đồ</small></span><ArrowUpRight size={14} /></a>
+        <a href="https://project-osrm.org/" target="_blank" rel="noreferrer"><Route size={22} /><span><strong>OSRM</strong><small>Tuyến đường tham khảo</small></span><ArrowUpRight size={14} /></a>
+        <a href="https://ai.google.dev/gemini-api" target="_blank" rel="noreferrer"><Sparkles size={22} /><span><strong>Gemini AI</strong><small>Cá nhân hóa lịch trình</small></span><ArrowUpRight size={14} /></a>
+      </div>
+      <p className="trust-disclaimer"><ShieldCheck size={14} /> TripGenie không bán vé hoặc phòng; mọi chi phí hiển thị là ước tính để lập kế hoạch.</p>
     </section>
 
     <section className="home-planner home-section home-reveal" id="lap-ke-hoach" aria-labelledby="planner-heading">

@@ -20,6 +20,8 @@ export default function PersistentTravelScene({ destinations, activeDestination 
     let loading = false
     let loadVersion = 0
     let lastRender = 0
+    let idleHandle = null
+    let idleUsesTimeout = false
 
     const update = (time = 0) => {
       frame = null
@@ -37,7 +39,8 @@ export default function PersistentTravelScene({ destinations, activeDestination 
       home.style.setProperty('--travel-world-opacity', hasVisibleWorld ? '1' : '0')
       const controller = controllerRef.current
       if (!controller || document.hidden) return
-      if (time - lastRender >= 32 || !lastRender) {
+      const renderInterval = progress < 1 ? 32 : 80
+      if (time - lastRender >= renderInterval || !lastRender) {
         lastRender = time
         controller.setProgress(progress)
         controller.setActiveDestination(activeRef.current)
@@ -64,13 +67,30 @@ export default function PersistentTravelScene({ destinations, activeDestination 
         }
       }).catch(() => { if (version === loadVersion) loading = false })
     }
+    const cancelScheduledLoad = () => {
+      if (idleHandle === null) return
+      if (idleUsesTimeout) window.clearTimeout(idleHandle)
+      else window.cancelIdleCallback(idleHandle)
+      idleHandle = null
+    }
+    const scheduleLoad = () => {
+      cancelScheduledLoad()
+      if (media.matches || lowMemory || controllerRef.current) return
+      if ('requestIdleCallback' in window) {
+        idleUsesTimeout = false
+        idleHandle = window.requestIdleCallback(() => { idleHandle = null; load() }, { timeout: 1400 })
+      } else {
+        idleUsesTimeout = true
+        idleHandle = window.setTimeout(() => { idleHandle = null; load() }, 450)
+      }
+    }
     const onMediaChange = () => {
       loadVersion++
       loading = false
       controllerRef.current?.dispose()
       controllerRef.current = null
       container.classList.remove('is-ready')
-      load()
+      scheduleLoad()
       schedule()
     }
     const onPointer = (event) => {
@@ -78,7 +98,7 @@ export default function PersistentTravelScene({ destinations, activeDestination 
       controllerRef.current.setPointer((event.clientX / window.innerWidth - 0.5) * 2, (event.clientY / window.innerHeight - 0.5) * 2)
       schedule()
     }
-    load()
+    scheduleLoad()
     schedule()
     window.addEventListener('scroll', schedule, { passive: true })
     window.addEventListener('resize', schedule)
@@ -88,6 +108,7 @@ export default function PersistentTravelScene({ destinations, activeDestination 
     return () => {
       alive = false
       loadVersion++
+      cancelScheduledLoad()
       if (frame !== null) window.cancelAnimationFrame(frame)
       window.removeEventListener('scroll', schedule)
       window.removeEventListener('resize', schedule)
