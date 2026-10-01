@@ -18,6 +18,18 @@ function Logo({ onClick }) {
   return <button className="brand" onClick={onClick} aria-label="TripGenie — về trang chủ"><span className="brand-mark"><img src={tripGenieLogo} alt="" /></span><span>TripGenie</span></button>
 }
 
+function ZaloContact() {
+  return <a
+    className="zalo-contact"
+    href="https://zalo.me/84981197806"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="Liên hệ TripGenie qua Zalo"
+  >
+    <span className="zalo-contact-icon" aria-hidden="true">Zalo</span>
+  </a>
+}
+
 function AiGeneratingPopup() {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
@@ -457,6 +469,7 @@ export default function App() {
     {page === 'pricing' && <PricingPage goTo={goTo} tripQuota={tripQuota} session={session} />}
     {page === 'admin' && (isAdmin ? <AdminPage currentUserId={session.user.id} /> : <main className="page-shell inner-page"><h1>Không có quyền truy cập</h1><p>Vui lòng đăng nhập bằng tài khoản quản trị.</p></main>)}
     <Footer goTo={goTo} />
+    <ZaloContact />
     {loginOpen && <LoginModal onClose={closeLogin} initialMode={authMode} />}
     {accountOpen && session && <AccountModal session={session} isAdmin={isAdmin} tripQuota={tripQuota} savedTripCount={trips.length} onClose={() => setAccountOpen(false)} onLogout={handleLogout} onUserUpdated={updateSessionUser} />}
     {generating && <AiGeneratingPopup />}
