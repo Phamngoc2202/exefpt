@@ -1,18 +1,54 @@
-import { ArrowRight, Check, Compass, Crown, Sparkles } from 'lucide-react'
+import { ArrowRight, Sparkles } from 'lucide-react'
 import './pricing.css'
 
 const packages = [
   {
-    name: 'Free', price: '0đ', period: 'trọn đời', quota: '1 lần tạo chuyến đi',
-    description: 'Thử lập một hành trình và xem trước chi phí.', icon: Compass,
+    name: 'Free',
+    category: 'Gói dùng thử',
+    price: '0đ',
+    period: 'Dùng thử một lần',
+    features: [
+      '1 lượt tạo lịch trình bằng AI',
+      '0 lịch trình được lưu',
+      'Xem trước lịch trình cơ bản',
+      'Không có tính năng nâng cao',
+    ],
   },
   {
-    name: 'Plus', price: '99.000đ', period: '3 tháng', quota: '20 lần tạo chuyến đi',
-    description: 'Dành cho những người thích lên kế hoạch thường xuyên.', icon: Sparkles,
+    name: 'Single Trip',
+    category: 'Gói chuyến đi lẻ',
+    price: '20.000đ',
+    period: 'Thanh toán một lần',
+    features: [
+      '1 lượt tạo lịch trình bằng AI',
+      '1 lịch trình được lưu',
+      'Dự toán chi phí chi tiết',
+      'Không có phương án dự phòng thông minh',
+    ],
   },
   {
-    name: 'Pro', price: '499.000đ', period: '12 tháng', quota: 'Không giới hạn lượt tạo',
-    description: 'Tự do khám phá mọi ý tưởng trong thời hạn gói.', icon: Crown,
+    name: 'TripGenie Plus',
+    category: 'Gói mở rộng',
+    price: '99.000đ',
+    period: 'Thanh toán một lần',
+    features: [
+      '20 lượt tạo lịch trình bằng AI',
+      '10 lịch trình được lưu',
+      '5 lượt dùng phương án dự phòng thông minh',
+      '3 lượt xuất PDF',
+    ],
+  },
+  {
+    name: 'Team',
+    category: 'Gói cao cấp cho nhóm',
+    price: '349.000đ',
+    period: 'Theo sự kiện / dự án nhóm',
+    features: [
+      '50 lượt tạo lịch trình bằng AI',
+      '20 lịch trình được lưu',
+      'Lên kế hoạch nhóm cho 15–50 người',
+      'Lập ngân sách nhóm và xuất PDF',
+    ],
   },
 ]
 
@@ -21,33 +57,23 @@ export default function PricingPage({ goTo, tripQuota, session }) {
     <div className="page-shell">
       <div className="pricing-heading">
         <span className="section-kicker"><Sparkles size={15} /> TRIPGENIE / BẢNG GIÁ</span>
-        <h1>Chọn cách bạn muốn khám phá.</h1>
-        <p>Một hành trình rõ ràng bắt đầu từ kế hoạch phù hợp. Xem các gói TripGenie dự kiến dành cho bạn.</p>
+        <h1>Chọn gói cho hành trình của bạn.</h1>
+        <p>Từ chuyến đi đầu tiên đến kế hoạch cho cả nhóm.</p>
       </div>
-      {session && tripQuota && <div className="pricing-current"><div><strong>Gói Free của bạn</strong><span>Còn {tripQuota.remaining} lượt tạo chuyến đi{tripQuota.bonus > 0 ? ` · ${tripQuota.bonus} lượt do admin cấp thêm` : ''}</span></div>{tripQuota.remaining > 0 && <button type="button" onClick={() => goTo('create')}>Tạo chuyến đi <ArrowRight size={17} /></button>}</div>}
+      {session && tripQuota && <div className="pricing-current"><div><strong>Lượt Free hiện có</strong><span>Còn {tripQuota.remaining} lượt tạo chuyến đi{tripQuota.bonus > 0 ? ` · ${tripQuota.bonus} lượt do admin cấp thêm` : ''}</span></div>{tripQuota.remaining > 0 && <button type="button" onClick={() => goTo('create')}>Tạo chuyến đi <ArrowRight size={17} /></button>}</div>}
       <div className="pricing-grid">
-        {packages.map((item) => {
-          const Icon = item.icon
-          return <article className={`pricing-card${item.name === 'Plus' ? ' featured' : ''}`} key={item.name}>
-            {item.name === 'Plus' && <span className="pricing-featured-label">PHỔ BIẾN</span>}
-            <div className="pricing-icon"><Icon size={24} /></div>
-            <span className="pricing-tier">{item.name}</span>
-            <p>{item.description}</p>
-            <div className="pricing-price"><strong>{item.price}</strong><span>/ {item.period}</span></div>
-            <div className="pricing-rule" />
-            <div className="pricing-benefit"><Check size={19} /><strong>{item.quota}</strong></div>
-            <ul>
-              <li><Check size={16} /> Lịch trình theo ngày</li>
-              <li><Check size={16} /> Dự toán và chỉnh sửa chi phí</li>
-              <li><Check size={16} /> Lưu và xem lại chuyến đi</li>
-            </ul>
-            {item.name === 'Free'
-              ? <button type="button" className="pricing-start" onClick={() => goTo('create')}>Bắt đầu miễn phí <ArrowRight size={17} /></button>
-              : <span className="pricing-card-status">Sắp ra mắt</span>}
-          </article>
-        })}
+        {packages.map((item) => <article className="pricing-card" key={item.name}>
+          <div className="pricing-card-main">
+            <span className="pricing-tier">{item.name} <span>· {item.category}</span></span>
+            <div className="pricing-price"><strong>{item.price}</strong><span>{item.period}</span></div>
+            <ul>{item.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
+          </div>
+          {item.name === 'Free'
+            ? <button type="button" className="pricing-start" onClick={() => goTo('create')}>Bắt đầu miễn phí <ArrowRight size={17} /></button>
+            : <span className="pricing-card-status">Sắp ra mắt</span>}
+        </article>)}
       </div>
-      <p className="pricing-note">Lượt Free và lượt admin cấp thêm đã được áp dụng. Plus và Pro hiện chỉ giới thiệu, chưa có thanh toán hoặc kích hoạt gói.</p>
+      <p className="pricing-note">Đây là bảng giá dự kiến. Hiện chuyến Free được lưu tự động; giới hạn số chuyến lưu và quyền lợi của các gói trả phí chưa được áp dụng.</p>
     </div>
   </main>
 }

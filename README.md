@@ -26,7 +26,7 @@ Lệnh kiểm tra: npm test, npm run lint, npm run build.
 - Chuyến đã lưu có thể tạo liên kết công khai chỉ xem, chia sẻ qua ứng dụng, tắt liên kết và in hoặc lưu PDF trực tiếp từ trình duyệt.
 - Trang Quản trị cho phép admin tìm tài khoản và cấp/thu hồi vai trò admin. Quyền được kiểm tra bằng RLS trong Supabase, không dựa vào email ở frontend. Admin không được xem chuyến đi riêng của người khác; chính tài khoản admin không thể tự hạ quyền.
 - Mỗi tài khoản có 1 lượt tạo chuyến đi ban đầu. Supabase chỉ trừ lượt khi chuyến đi tạo và lưu thành công; nếu lưu lỗi, lượt không bị mất. Xóa chuyến đã lưu không hoàn lại lượt. Admin có thể cấp thêm 1–100 lượt mỗi lần từ trang Quản trị. Người dùng vẫn xem và chỉnh sửa chuyến đã lưu khi hết lượt.
-- Gói Plus (99.000đ/3 tháng) và Pro (499.000đ/12 tháng) hiện chỉ là giao diện giới thiệu, chưa có thanh toán hoặc kích hoạt gói. Giới hạn lượt Free và lượt admin cấp thêm đã hoạt động sau khi chạy SQL.
+- Bảng giá dự kiến gồm Free (0đ), Single Trip (20.000đ/lần), TripGenie Plus (99.000đ/lần) và Team (349.000đ/sự kiện hoặc dự án nhóm). Các gói trả phí hiện chỉ là giao diện giới thiệu, chưa có thanh toán hoặc kích hoạt. Free hiện tự lưu chuyến đi sau khi tạo thành công; giới hạn số chuyến được lưu theo bảng giá chưa áp dụng. Giới hạn lượt Free và lượt admin cấp thêm đã hoạt động sau khi chạy SQL.
 
 **Lưu ý:** Mọi mức giá là ước tính tham khảo, không phải giá thời gian thực hay báo giá đặt chỗ. Hãy kiểm tra lại vé, phòng, giờ mở cửa và thời gian di chuyển trước khi đi. Dữ liệu điểm tham quan tham khảo từ [Cục Du lịch Quốc gia Việt Nam](https://vietnam.travel/vi/places-to-go/northern-vietnam).
 
