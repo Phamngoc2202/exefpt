@@ -12,7 +12,6 @@ export default function PersistentTravelScene({ destinations, activeDestination 
     const container = containerRef.current
     const home = container.closest('.immersive-home')
     const hero = home.querySelector('.home-hero')
-    const journey = home.querySelector('.journey-globe')
     const media = window.matchMedia('(max-width: 600px), (prefers-reduced-motion: reduce)')
     const lowMemory = navigator.deviceMemory && navigator.deviceMemory <= 2
     let alive = true
@@ -20,27 +19,41 @@ export default function PersistentTravelScene({ destinations, activeDestination 
     let loading = false
     let loadVersion = 0
     let lastRender = 0
+    let lastWorldVisibility = null
     let idleHandle = null
     let idleUsesTimeout = false
+    let metrics = { heroTop: 0, homeTop: 0, homeBottom: 0, animationDistance: 1 }
+
+    const measure = () => {
+      const scrollY = window.scrollY
+      const homeRect = home.getBoundingClientRect()
+      const heroRect = hero.getBoundingClientRect()
+      metrics = {
+        heroTop: heroRect.top + scrollY,
+        homeTop: homeRect.top + scrollY,
+        homeBottom: homeRect.bottom + scrollY,
+        animationDistance: Math.max(1, hero.offsetHeight),
+      }
+    }
 
     const update = (time = 0) => {
       frame = null
-      const homeRect = home.getBoundingClientRect()
-      const heroRect = hero.getBoundingClientRect()
-      const journeyRect = journey.getBoundingClientRect()
-      // Start morphing as soon as the user scrolls the hero and finish as the
-      // journey chapter enters. No extra sticky scroll distance is required.
-      const journeyDistance = Math.max(1, journeyRect.height - window.innerHeight)
-      const animationDistance = Math.max(1, hero.offsetHeight + journeyDistance)
-      const progress = clamp(-heroRect.top / animationDistance)
+      // Morph while the hero scrolls away, finishing as Explore enters.
+      const scrollY = window.scrollY
+      const progress = clamp((scrollY - metrics.heroTop) / metrics.animationDistance)
       // Keep the world alive for the complete homepage. Content sections use
       // translucent surfaces so the same 3D journey continues behind them.
-      const hasVisibleWorld = homeRect.bottom > 0 && homeRect.top < window.innerHeight
-      home.style.setProperty('--travel-world-opacity', hasVisibleWorld ? '1' : '0')
+      const hasVisibleWorld = scrollY + window.innerHeight > metrics.homeTop && scrollY < metrics.homeBottom
+      if (hasVisibleWorld !== lastWorldVisibility) {
+        home.style.setProperty('--travel-world-opacity', hasVisibleWorld ? '1' : '0')
+        lastWorldVisibility = hasVisibleWorld
+      }
       const controller = controllerRef.current
       if (!controller || document.hidden) return
-      const renderInterval = progress < 1 ? 32 : 80
-      if (time - lastRender >= renderInterval || !lastRender) {
+      // Follow the display refresh rate while the scene is prominent. Farther
+      // down the page it is only a subtle backdrop, so a lower cadence suffices.
+      const sceneIsProminent = scrollY < metrics.heroTop + metrics.animationDistance * 1.5
+      if (sceneIsProminent || time - lastRender >= 32 || !lastRender) {
         lastRender = time
         controller.setProgress(progress)
         controller.setActiveDestination(activeRef.current)
@@ -50,6 +63,10 @@ export default function PersistentTravelScene({ destinations, activeDestination 
     }
     const schedule = () => {
       if (frame === null) frame = window.requestAnimationFrame(update)
+    }
+    const onResize = () => {
+      measure()
+      schedule()
     }
     const load = () => {
       if (media.matches || lowMemory || loading || controllerRef.current) return
@@ -98,10 +115,14 @@ export default function PersistentTravelScene({ destinations, activeDestination 
       controllerRef.current.setPointer((event.clientX / window.innerWidth - 0.5) * 2, (event.clientY / window.innerHeight - 0.5) * 2)
       schedule()
     }
+    const layoutObserver = new ResizeObserver(onResize)
+    layoutObserver.observe(home)
+    layoutObserver.observe(hero)
+    measure()
     scheduleLoad()
     schedule()
     window.addEventListener('scroll', schedule, { passive: true })
-    window.addEventListener('resize', schedule)
+    window.addEventListener('resize', onResize)
     window.addEventListener('pointermove', onPointer, { passive: true })
     document.addEventListener('visibilitychange', schedule)
     media.addEventListener('change', onMediaChange)
@@ -109,9 +130,10 @@ export default function PersistentTravelScene({ destinations, activeDestination 
       alive = false
       loadVersion++
       cancelScheduledLoad()
+      layoutObserver.disconnect()
       if (frame !== null) window.cancelAnimationFrame(frame)
       window.removeEventListener('scroll', schedule)
-      window.removeEventListener('resize', schedule)
+      window.removeEventListener('resize', onResize)
       window.removeEventListener('pointermove', onPointer)
       document.removeEventListener('visibilitychange', schedule)
       media.removeEventListener('change', onMediaChange)

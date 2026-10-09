@@ -5,6 +5,7 @@ import './home.css'
 import './travel-polish.css'
 import HomePage from './components/home/HomePage'
 import { activityTypeForCategory, createDefaultForm, generatePlan, planFromRow, toTripPayload, validateTripForm } from './lib/tripPlanner'
+import { buildTripShareUrl, shareTokenFromSearch } from './lib/tripSharing'
 import { summarizeTripQuota } from './lib/tripQuota'
 import { supabase } from './lib/supabase'
 import tripGenieLogo from './logo/tripgenie-mark.png'
@@ -15,6 +16,7 @@ const PricingPage = lazy(() => import('./components/PricingPage'))
 const CreateTripPage = lazy(() => import('./components/TripPages').then((module) => ({ default: module.CreateTripPage })))
 const ItineraryPage = lazy(() => import('./components/TripPages').then((module) => ({ default: module.ItineraryPage })))
 const TripsPage = lazy(() => import('./components/TripPages').then((module) => ({ default: module.TripsPage })))
+const SharedTripPage = lazy(() => import('./components/TripSharing').then((module) => ({ default: module.SharedTripPage })))
 
 const protectedPages = new Set(['create', 'itinerary', 'trips'])
 
@@ -183,7 +185,11 @@ function Footer({ goTo }) {
 }
 
 export default function App() {
-  const [page, setPage] = useState('home')
+  const initialShareToken = useRef(shareTokenFromSearch(window.location.search)).current
+  const publicShareActive = useRef(Boolean(initialShareToken))
+  const [page, setPage] = useState(initialShareToken ? 'shared' : 'home')
+  const [shareToken, setShareToken] = useState(initialShareToken)
+  const [sharedTripState, setSharedTripState] = useState({ status: initialShareToken ? 'loading' : 'idle', plan: null, error: '' })
   const [selectedDestination, setSelectedDestination] = useState('Sa Pa')
   const [form, setForm] = useState(createDefaultForm)
   const [formError, setFormError] = useState('')
@@ -215,10 +221,33 @@ export default function App() {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession)
-      if (!nextSession) { setPage('home'); setPlan(null); setTrips([]); setAdminUserId(null); setTripQuota(null) }
+      if (!nextSession) {
+        if (!publicShareActive.current) setPage('home')
+        setPlan(null); setTrips([]); setAdminUserId(null); setTripQuota(null)
+      }
     })
     return () => subscription.unsubscribe()
   }, [])
+  useEffect(() => {
+    if (!shareToken) return
+    let active = true
+    setSharedTripState({ status: 'loading', plan: null, error: '' })
+    supabase.rpc('get_shared_trip', { p_token: shareToken }).then(({ data, error }) => {
+      if (!active) return
+      if (error || !data) {
+        setSharedTripState({ status: 'error', plan: null, error: 'Liên kết đã bị tắt, không tồn tại hoặc tính năng chia sẻ chưa được cấu hình.' })
+        return
+      }
+      try {
+        const sharedPlan = planFromRow(data)
+        if (!sharedPlan.days.length) throw new Error('empty_trip')
+        setSharedTripState({ status: 'ready', plan: sharedPlan, error: '' })
+      } catch {
+        setSharedTripState({ status: 'error', plan: null, error: 'Dữ liệu lịch trình chia sẻ không còn hợp lệ.' })
+      }
+    })
+    return () => { active = false }
+  }, [shareToken])
   useEffect(() => {
     if (!session) return
     let active = true
@@ -259,6 +288,13 @@ export default function App() {
   }
   const openRegistrationFor = (target) => { setPendingPage(target); setAuthMode('register'); setLoginOpen(true) }
   const goTo = async (target, destinationCity) => {
+    if (target !== 'shared' && publicShareActive.current) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('share')
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+      publicShareActive.current = false
+      setShareToken('')
+    }
     if (target === 'destination' && destinationCity) setSelectedDestination(destinationCity)
     if (target === 'admin') {
       const { data: authData } = await supabase.auth.getSession()
@@ -412,24 +448,47 @@ export default function App() {
     }
   }
   const handleSave = async () => {
-    if (!plan || saving) return
-    if (!plan.id) { setToast('Chuyến đi chưa được tạo và lưu. Hãy thử tạo lại.'); return }
+    if (!plan || saving) return false
+    if (!plan.id) { setToast('Chuyến đi chưa được tạo và lưu. Hãy thử tạo lại.'); return false }
     if (plan.days.some((day) => day.activities.some((activity) => !activity.title.trim() || !activity.time))) {
       setToast('Hãy điền tên và giờ cho tất cả hoạt động trước khi lưu.')
-      return
+      return false
     }
     const { data: authData } = await supabase.auth.getSession()
-    if (!authData.session) { openRegistrationFor('itinerary'); return }
+    if (!authData.session) { openRegistrationFor('itinerary'); return false }
     setSaving(true)
     const payload = toTripPayload(plan, authData.session.user.id)
     const { data, error } = await supabase.from('trips').update(payload).eq('id', plan.id).select().single()
     setSaving(false)
-    if (error) { setToast('Không lưu được chuyến đi. Kiểm tra kết nối Supabase và quyền của bảng trips.'); return }
+    if (error) { setToast('Không lưu được chuyến đi. Kiểm tra kết nối Supabase và quyền của bảng trips.'); return false }
     const savedPlan = planFromRow(data)
     setPlan(savedPlan)
     setTrips((current) => [savedPlan, ...current.filter((trip) => trip.id !== savedPlan.id)])
     setSaved(true)
     setToast('Đã lưu lịch trình và chi phí vào Supabase!')
+    return true
+  }
+  const handleCreateShare = async () => {
+    if (!plan?.id) throw new Error('Chuyến đi cần được lưu trước khi chia sẻ.')
+    if (!saved) {
+      const didSave = await handleSave()
+      if (!didSave) throw new Error('Hãy lưu các thay đổi hợp lệ trước khi chia sẻ.')
+    }
+    const { data: token, error } = await supabase.rpc('create_trip_share', { p_trip_id: plan.id })
+    if (error || !token) {
+      const setupMissing = error?.code === 'PGRST202' || error?.message?.includes('create_trip_share')
+      throw new Error(setupMissing ? 'Hãy chạy file supabase/trip_sharing.sql trong Supabase SQL Editor trước.' : 'Không thể tạo liên kết lúc này. Hãy kiểm tra kết nối rồi thử lại.')
+    }
+    const url = buildTripShareUrl(token, window.location.href)
+    if (!url) throw new Error('Token chia sẻ không hợp lệ.')
+    return url
+  }
+  const handleRevokeShare = async () => {
+    if (!plan?.id) return false
+    const { data, error } = await supabase.rpc('revoke_trip_share', { p_trip_id: plan.id })
+    if (error) { setToast('Không tắt được liên kết chia sẻ lúc này.'); return false }
+    setToast(data ? 'Đã tắt liên kết chia sẻ.' : 'Chuyến đi chưa có liên kết đang hoạt động.')
+    return true
   }
   const handleOpenTrip = (trip) => {
     setPlan(trip)
@@ -475,8 +534,9 @@ export default function App() {
     <Suspense fallback={<main className="page-shell inner-page">Đang mở trang...</main>}>
       {page === 'home' && <HomePage goTo={goTo} form={form} setForm={updateForm} onExplore={(city) => goTo('destination', city)} />}
       {page === 'destination' && <DestinationDetailPage city={selectedDestination} onBack={() => goTo('home')} onPlan={handlePlanDestination} />}
+      {page === 'shared' && <SharedTripPage state={sharedTripState} onCreateOwn={() => goTo('create')} onBackHome={() => goTo('home')} />}
       {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} formError={formError} onBack={() => goTo('home')} generating={generating} tripQuota={tripQuota} onSeePlans={() => goTo('pricing')} />}
-      {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onAiRefineDay={handleAiRefineDay} aiRefiningDay={aiRefiningDay} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} />}
+      {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onAiRefineDay={handleAiRefineDay} aiRefiningDay={aiRefiningDay} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} onCreateShare={handleCreateShare} onRevokeShare={handleRevokeShare} />}
       {page === 'trips' && <TripsPage trips={trips} goTo={goTo} onOpen={handleOpenTrip} onDelete={handleDeleteTrip} deletingId={deletingId} />}
       {page === 'pricing' && <PricingPage goTo={goTo} tripQuota={tripQuota} session={session} />}
       {page === 'admin' && (isAdmin ? <AdminPage currentUserId={session.user.id} /> : <main className="page-shell inner-page"><h1>Không có quyền truy cập</h1><p>Vui lòng đăng nhập bằng tài khoản quản trị.</p></main>)}

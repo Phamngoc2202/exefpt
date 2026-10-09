@@ -106,6 +106,55 @@
 .budget-row:last-child { border-bottom: 0; }
 .budget-row strong { font-size: 12px; }
 
+/* The cost overview replaces the decorative route scene at the top of the itinerary. */
+.itinerary-budget-primary {
+  display: grid;
+  grid-template-columns: minmax(220px, .85fr) minmax(215px, .8fr) minmax(270px, 1fr);
+  gap: 26px;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: clamp(25px, 3vw, 38px);
+  background:
+    radial-gradient(circle at 88% 10%, rgba(139, 214, 203, .22), transparent 31%),
+    #fff;
+}
+.itinerary-budget-primary .budget-overview {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.itinerary-budget-primary .panel-heading h2 { font-size: clamp(24px, 2.2vw, 32px); }
+.itinerary-budget-primary .budget-total-amount { font-size: clamp(34px, 3.2vw, 48px); }
+.itinerary-budget-primary .budget-total-note { line-height: 1.55; }
+.itinerary-budget-primary .budget-summary {
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 18px;
+  padding: 0;
+}
+.itinerary-budget-primary .donut { width: 126px; height: 126px; }
+.itinerary-budget-primary .donut::before { width: 84px; height: 84px; }
+.itinerary-budget-primary .budget-legend { gap: 10px; }
+.itinerary-budget-primary .budget-legend > div { font-size: 11px; }
+.itinerary-budget-primary .budget-list {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-top: 0;
+  border-left: 1px solid #dfeae8;
+  padding: 0 0 0 26px;
+}
+.itinerary-budget-primary .budget-row { min-height: 44px; }
+.itinerary-budget-primary .budget-totals { margin-top: 22px; }
+.itinerary-budget-primary .budget-safe { margin-top: 14px; }
+.itinerary-budget-primary > .estimate-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid #dfeae8;
+}
+
 .trips-page { padding-top: 80px; }
 .trips-heading h1 { font-size: clamp(43px, 5.5vw, 70px); letter-spacing: -.06em; }
 .trips-heading p { font-size: 15px; }
@@ -157,6 +206,18 @@
   .create-layout { grid-template-columns: minmax(280px, .85fr) minmax(0, 1.15fr); gap: 22px; }
   .create-intro { min-height: 700px; padding: 34px; }
   .form-card { padding: 32px; }
+  .itinerary-budget-primary {
+    grid-template-columns: minmax(230px, 1fr) minmax(230px, 1fr);
+  }
+  .itinerary-budget-primary .budget-list {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+    border-top: 1px solid #dfeae8;
+    border-left: 0;
+    padding: 16px 0 0;
+  }
   .trips-grid > .saved-trip-card,
   .trips-grid > .new-trip-card { flex-basis: calc((100% - 17px) / 2); }
 }
@@ -180,6 +241,14 @@
   .create-intro { min-height: 300px; }
   .form-card { padding: 23px; }
   .trip-banner { min-height: 0; padding-block: 38px; }
+  .itinerary-budget-primary { grid-template-columns: 1fr; gap: 22px; padding: 22px 18px; }
+  .itinerary-budget-primary .budget-summary { grid-template-columns: 118px minmax(0, 1fr); }
+  .itinerary-budget-primary .donut { width: 112px; height: 112px; }
+  .itinerary-budget-primary .donut::before { width: 76px; height: 76px; }
+  .itinerary-budget-primary .budget-list {
+    grid-column: auto;
+    display: block;
+  }
   .trip-route-visual { min-height: 250px; }
   .trip-route-copy { max-width: 80%; padding: 24px; }
   .trip-route-canvas { left: 5%; opacity: .55; }
@@ -192,7 +261,6 @@
   .saved-trip-card .trip-card-body h2 { font-size: 31px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .persistent-travel-scene::before { transition: none; }
   .saved-trip-card,
   .new-trip-card,
   .day-tabs button { transition: none; }

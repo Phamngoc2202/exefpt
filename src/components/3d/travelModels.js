@@ -50,35 +50,70 @@ export function createLandscape() {
     }
   })
 
-  // Golden glowing sun
-  const sun = new THREE.Mesh(
-    new THREE.SphereGeometry(0.42, 20, 16),
-    new THREE.MeshBasicMaterial({ color: 0xffd166 }),
-  )
-  sun.position.set(2.6, 1.85, -1.2)
-  group.add(sun)
-
   return group
 }
 
-export function createClouds() {
-  return [[-2.3, 1.74, 0.65], [1.64, 1.52, 0.55], [-0.3, -1.95, 0.48]].map(([x, y, size]) => {
-    const cloud = new THREE.Group()
-    const cloudMaterial = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.88,
-      roughness: 0.9,
-    })
-    ;[[-0.38, 0, 0.32], [0, 0.12, 0.43], [0.42, -0.02, 0.29]].forEach(([offset, rise, radius]) => {
-      const puff = new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 10), cloudMaterial)
-      puff.position.set(offset, rise, 0)
-      cloud.add(puff)
-    })
-    cloud.scale.setScalar(size)
-    cloud.position.set(x, y, 1.15)
-    return cloud
+export function createSkyDecorations() {
+  const group = new THREE.Group()
+  const cloudGeometry = new THREE.IcosahedronGeometry(1, 1)
+  const cloudMaterial = new THREE.MeshStandardMaterial({
+    color: 0xf2fffc, roughness: 1, flatShading: true, transparent: true, opacity: 0.94, depthWrite: false,
   })
+  const cloudShadeMaterial = new THREE.MeshStandardMaterial({
+    color: 0xcde9e5, roughness: 1, flatShading: true, transparent: true, opacity: 0.82, depthWrite: false,
+  })
+  const sunMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffce6b, emissive: 0xffb84c, emissiveIntensity: 0.35,
+    roughness: 1, flatShading: true, transparent: true, opacity: 0.95, depthWrite: false,
+  })
+  const glowMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffdf9b, transparent: true, opacity: 0.15, depthWrite: false,
+  })
+
+  const sun = new THREE.Group()
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12), glowMaterial)
+  const disc = new THREE.Mesh(new THREE.IcosahedronGeometry(0.43, 1), sunMaterial)
+  glow.renderOrder = 0
+  disc.renderOrder = 1
+  sun.add(glow, disc)
+  sun.position.set(2.65, 0.92, -1.4)
+  group.add(sun)
+
+  const makeCloud = (x, y, z, scale) => {
+    const cloud = new THREE.Group()
+    const lobes = [
+      [-0.43, -0.06, 0.34, 0.21, 0.22, cloudShadeMaterial],
+      [-0.12, 0.12, 0.4, 0.29, 0.25, cloudMaterial],
+      [0.28, 0.04, 0.43, 0.25, 0.23, cloudMaterial],
+      [0.59, -0.08, 0.29, 0.18, 0.2, cloudShadeMaterial],
+    ]
+    lobes.forEach(([left, top, width, height, depth, material]) => {
+      const lobe = new THREE.Mesh(cloudGeometry, material)
+      lobe.position.set(left, top, 0)
+      lobe.scale.set(width, height, depth)
+      cloud.add(lobe)
+    })
+    cloud.position.set(x, y, z)
+    cloud.scale.setScalar(scale)
+    group.add(cloud)
+    return { cloud, x, y }
+  }
+
+  const clouds = [
+    makeCloud(-2.95, 0.8, -1.25, 1),
+    makeCloud(3.55, 0.66, -1.2, 0.72),
+  ]
+
+  return {
+    group,
+    clouds,
+    materials: [
+      [cloudMaterial, 0.94],
+      [cloudShadeMaterial, 0.82],
+      [sunMaterial, 0.95],
+      [glowMaterial, 0.15],
+    ],
+  }
 }
 
 export function createRouteAndPlane() {

@@ -2,17 +2,17 @@ import { useState } from 'react'
 import {
   ArrowLeft, ArrowRight, CalendarDays, Check, CircleDollarSign, Clock3, Compass,
   Hotel, Landmark, Map, MapPin, Mountain, Navigation, Pencil, Plus, RefreshCw, Save,
-  Sparkles, Ticket, TrainFront, Trash2, Users, Utensils, WalletCards, X,
+  Share2, Sparkles, Ticket, TrainFront, Trash2, Users, Utensils, WalletCards, X, Printer,
 } from 'lucide-react'
 import { destinationNames, findDestination } from '../data/northernDestinations'
 import { departurePointNames, findDeparturePoint } from '../data/departurePoints'
 import { destinationImages } from '../data/destinationImages'
 import AnimatedMoney from './AnimatedMoney'
-import TripRouteScene from './3d/TripRouteScene'
 import TripMap from './TripMap'
 import TripWeather from './TripWeather'
 import TransportProviders from './TransportProviders'
 import LodgingProviders from './LodgingProviders'
+import { PrintableTripDocument, TripShareDialog } from './TripSharing'
 import { COST_CATEGORIES, MAX_TRIP_DAYS, activityTypeForCategory, addDays, countTripDays, formatTripDate, summarizePlan } from '../lib/tripPlanner'
 
 const interestOptions = ['Ẩm thực', 'Thiên nhiên', 'Văn hóa', 'Chụp ảnh', 'Biển', 'Mua sắm']
@@ -112,7 +112,7 @@ export function CreateTripPage({ form, setForm, onGenerate, formError, onBack, g
   )
 }
 
-function BudgetPanel({ plan }) {
+function BudgetPanel({ plan, className = '' }) {
   const summary = summarizePlan(plan)
   const values = budgetRows.map((row) => row.category === 'Dự phòng' ? summary.reserve : summary.categories[row.category])
   const chartTotal = Math.max(1, summary.total)
@@ -124,10 +124,17 @@ function BudgetPanel({ plan }) {
   })
 
   return (
-    <section className="budget-card">
-      <div className="panel-heading"><div><span className="section-kicker">Ngân sách rõ ràng</span><h2>Chi phí dự kiến</h2></div></div>
-      <AnimatedMoney value={summary.total} />
-      <span className="budget-total-note">Tổng ước tính cho {plan.form.travelers} người · đã bao gồm dự phòng</span>
+    <section className={`budget-card${className ? ` ${className}` : ''}`}>
+      <div className="budget-overview">
+        <div className="panel-heading"><div><span className="section-kicker">Ngân sách rõ ràng</span><h2>Chi phí dự kiến</h2></div></div>
+        <AnimatedMoney value={summary.total} />
+        <span className="budget-total-note">Tổng ước tính cho {plan.form.travelers} người · đã bao gồm dự phòng</span>
+        <div className="budget-totals"><span>Ngân sách cả nhóm</span><strong>{formatMoney(plan.form.budget)}</strong></div>
+        <div className={summary.overBudget ? 'budget-safe over-budget' : 'budget-safe'}>
+          {summary.overBudget ? <X size={17} /> : <Check size={17} />}
+          <div><strong>{summary.overBudget ? `Vượt ${formatMoney(-summary.remaining)}` : `Còn ${formatMoney(summary.remaining)}`}</strong><small>Đã tính {formatMoney(summary.reserve)} dự phòng (10%).</small></div>
+        </div>
+      </div>
       <div className="budget-summary">
         <div className="donut" style={{ background: `conic-gradient(${slices.join(', ')})` }}><div><small>Tổng dự kiến</small><strong>{(summary.total / 1000000).toFixed(1)}M</strong><span>VNĐ</span></div></div>
         <div className="budget-legend">
@@ -139,11 +146,6 @@ function BudgetPanel({ plan }) {
           const Icon = row.icon
           return <div className="budget-row" key={row.category}><span className="budget-icon" style={{ color: row.color, background: `${row.color}15` }}><Icon size={17} /></span><span>{row.category}</span><strong>{formatMoney(values[index])}</strong></div>
         })}
-      </div>
-      <div className="budget-totals"><span>Ngân sách cả nhóm</span><strong>{formatMoney(plan.form.budget)}</strong></div>
-      <div className={summary.overBudget ? 'budget-safe over-budget' : 'budget-safe'}>
-        {summary.overBudget ? <X size={17} /> : <Check size={17} />}
-        <div><strong>{summary.overBudget ? `Vượt ${formatMoney(-summary.remaining)}` : `Còn ${formatMoney(summary.remaining)}`}</strong><small>Đã tính {formatMoney(summary.reserve)} dự phòng (10%).</small></div>
       </div>
       <p className="estimate-note">Giá chỉ để tham khảo. Hãy kiểm tra vé, phòng và phương tiện trước khi đặt.</p>
     </section>
@@ -165,11 +167,13 @@ function ActivityEditor({ activity, onChange, onDone, onDelete }) {
   )
 }
 
-export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpdateActivity, onAddActivity, onDeleteActivity, onAiRefineDay, aiRefiningDay, onDelete, deleting }) {
+export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpdateActivity, onAddActivity, onDeleteActivity, onAiRefineDay, aiRefiningDay, onDelete, deleting, onCreateShare, onRevokeShare }) {
   const [activeDay, setActiveDay] = useState(1)
   const [editingId, setEditingId] = useState(null)
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
   const [aiInstruction, setAiInstruction] = useState('')
+  const [shareOpen, setShareOpen] = useState(false)
+  const [shareState, setShareState] = useState({ loading: false, url: '', error: '' })
   const dayData = plan.days.find((day) => day.day === activeDay) || plan.days[0]
   const dayDestination = dayData?.destination || dayData?.city || plan.form.destination
   const destination = findDestination(plan.form.destination)
@@ -181,19 +185,32 @@ export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpd
     const updated = await onAiRefineDay(dayData.day, aiInstruction)
     if (updated) { setAiPanelOpen(false); setAiInstruction('') }
   }
+  const createShare = async () => {
+    setShareState({ loading: true, url: '', error: '' })
+    try {
+      const url = await onCreateShare()
+      setShareState({ loading: false, url, error: '' })
+    } catch (error) {
+      setShareState({ loading: false, url: '', error: error.message || 'Không thể tạo liên kết lúc này.' })
+    }
+  }
+  const openShare = () => {
+    setShareOpen(true)
+    if (!shareState.url && !shareState.loading) createShare()
+  }
 
   return (
     <main className="itinerary-page inner-page">
       <section className="trip-banner" style={{ backgroundImage: 'linear-gradient(90deg, rgba(11,38,30,.94), rgba(12,42,34,.78) 57%, rgba(12,42,34,.4)), url(' + (destinationImages[plan.form.destination] || destinationImages['Ninh Bình']) + ')' }}><div className="page-shell banner-inner">
         <div><span className="eyebrow light"><Compass size={14} /> Kế hoạch gợi ý · miền Bắc</span><h1>{plan.form.destination} — hành trình của bạn</h1><p><Navigation size={16} /> {plan.form.origin} → {plan.form.destination} <span /> <CalendarDays size={16} /> {dateLabel} <span /> <Users size={16} /> {plan.form.travelers} người <span /> <WalletCards size={16} /> Ngân sách {formatMoney(plan.form.budget)}</p></div>
-        <div className="banner-actions"><button className="secondary-button" onClick={onRegenerate}><RefreshCw size={17} /> Tạo lại</button><button className={saved ? 'primary-button saved' : 'primary-button'} onClick={onSave} disabled={saved || saving || deleting}>{saved ? <Check size={17} /> : <Save size={17} />}{saving ? 'Đang lưu...' : saved ? 'Đã lưu tự động' : 'Lưu thay đổi'}</button>{plan.id && <button type="button" className="delete-plan-button" onClick={onDelete} disabled={deleting || saving} aria-busy={deleting}><Trash2 size={17} /> {deleting ? 'Đang xóa...' : 'Xóa kế hoạch'}</button>}</div>
+        <div className="banner-actions"><button className="secondary-button" onClick={onRegenerate}><RefreshCw size={17} /> Tạo lại</button><button className={saved ? 'primary-button saved' : 'primary-button'} onClick={onSave} disabled={saved || saving || deleting}>{saved ? <Check size={17} /> : <Save size={17} />}{saving ? 'Đang lưu...' : saved ? 'Đã lưu tự động' : 'Lưu thay đổi'}</button>{plan.id && <button type="button" className="secondary-button trip-share-button" onClick={openShare} disabled={deleting || saving}><Share2 size={17} /> Chia sẻ</button>}<button type="button" className="secondary-button trip-print-button" onClick={() => window.print()}><Printer size={17} /> In / PDF</button>{plan.id && <button type="button" className="delete-plan-button" onClick={onDelete} disabled={deleting || saving} aria-busy={deleting}><Trash2 size={17} /> {deleting ? 'Đang xóa...' : 'Xóa kế hoạch'}</button>}</div>
       </div></section>
 
       <div className="page-shell itinerary-edit-hint" role="status">{saved ? 'Chuyến đi đã được lưu. Bạn có thể sửa hoặc thêm hoạt động bất cứ lúc nào.' : 'Bạn có thay đổi chưa lưu. Hãy bấm “Lưu thay đổi” để giữ lại.'}</div>
       {plan.form.specialRequest?.trim() && <div className="page-shell"><div className="trip-special-request"><span><Sparkles size={17} /></span><div><small>Yêu cầu riêng của bạn</small><strong>{plan.form.specialRequest.trim()}</strong></div></div></div>}
       <div className="page-shell itinerary-layout">
         <div className="itinerary-main">
-          <TripRouteScene days={plan.days} activeDay={dayData.day} destination={dayDestination} />
+          <BudgetPanel plan={plan} className="itinerary-budget-primary" />
           <div className="day-tabs">{plan.days.map((day) => <button className={dayData.day === day.day ? 'active' : ''} onClick={() => { setActiveDay(day.day); setEditingId(null); setAiPanelOpen(false); setAiInstruction('') }} key={day.date}><span>Ngày {day.day}</span><small>{formatTripDate(day.date, { day: '2-digit', month: 'short' })}</small></button>)}</div>
           <TripWeather city={dayDestination} coordinates={destination?.coordinates} date={dayData.date} />
           <section className="timeline-card">
@@ -221,8 +238,10 @@ export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpd
             <button className="secondary-button add-activity-bottom" onClick={() => setEditingId(onAddActivity(dayData.day))}><Plus size={16} /> Thêm hoạt động</button>
           </section>
         </div>
-        <aside className="itinerary-side"><TripMap city={plan.form.destination} coordinates={destination?.coordinates} origin={plan.form.origin} originCoordinates={originPoint?.coordinates} day={dayData} /><TransportProviders form={plan.form} /><LodgingProviders form={plan.form} /><BudgetPanel plan={plan} /><div className="plan-disclaimer"><strong>Cần kiểm tra trước khi đi</strong><p>Thứ tự tham quan, giờ mở cửa, thời gian di chuyển và giá có thể thay đổi. Đây chưa phải lịch trình đặt chỗ.</p>{destination && <a href={destination.guideUrl} target="_blank" rel="noreferrer">Xem thông tin điểm đến ↗</a>}</div></aside>
+        <aside className="itinerary-side"><TransportProviders form={plan.form} /><LodgingProviders form={plan.form} /><div className="plan-disclaimer"><strong>Cần kiểm tra trước khi đi</strong><p>Thứ tự tham quan, giờ mở cửa, thời gian di chuyển và giá có thể thay đổi. Đây chưa phải lịch trình đặt chỗ.</p>{destination && <a href={destination.guideUrl} target="_blank" rel="noreferrer">Xem thông tin điểm đến ↗</a>}</div><TripMap city={plan.form.destination} coordinates={destination?.coordinates} origin={plan.form.origin} originCoordinates={originPoint?.coordinates} day={dayData} /></aside>
       </div>
+      <PrintableTripDocument plan={plan} />
+      {shareOpen && <TripShareDialog url={shareState.url} loading={shareState.loading} error={shareState.error} onClose={() => setShareOpen(false)} onRetry={createShare} onRevoke={onRevokeShare} />}
     </main>
   )
 }
