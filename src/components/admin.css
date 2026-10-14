@@ -61,7 +61,6 @@
 .admin-table select:disabled { opacity: .64; cursor: not-allowed; }
 .admin-credit-cell { display: grid; gap: 5px; justify-items: start; }
 .admin-credit-cell strong { color: #0b6971; }
-.admin-credit-cell small { color: #7c9497; font-size: 11px; white-space: nowrap; }
 .admin-credit-cell > div { display: flex; gap: 6px; }
 .admin-credit-cell input { width: 55px; padding: 7px; border: 1px solid #d4e5e3; border-radius: 8px; font: inherit; }
 .admin-credit-cell button { padding: 7px 10px; border: 0; border-radius: 8px; background: #0b6971; color: white; font: inherit; font-weight: 800; cursor: pointer; white-space: nowrap; }
