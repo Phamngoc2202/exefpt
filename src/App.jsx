@@ -97,7 +97,7 @@ function AccountModal({ session, isAdmin, tripQuota, savedTripCount, onClose, on
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState(null)
   const joinedAt = user.created_at
-    ? new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(user.created_at))
+    ? new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(user.created_at))
     : 'Chưa xác định'
 
   const saveAccount = async (event) => {

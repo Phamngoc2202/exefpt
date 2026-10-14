@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, RefreshCw, Search, ShieldCheck, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { summarizeTripQuota } from '../lib/tripQuota'
+import DailySignupsChart from './DailySignupsChart'
 import './admin.css'
 
 const PAGE_SIZE = 20
@@ -111,6 +112,8 @@ export default function AdminPage({ currentUserId }) {
     <div className="page-shell">
       <div className="admin-heading"><div><span className="section-kicker"><ShieldCheck size={15} /> TRIPGENIE / QUẢN TRỊ</span><h1>Người dùng và lượt tạo</h1><p>Phân quyền và cấp thêm lượt lập kế hoạch cho từng tài khoản. Quyền xem chuyến đi của người dùng vẫn được bảo vệ riêng trong Supabase.</p></div><span className="admin-count"><Users size={17} /> {total} tài khoản</span></div>
 
+      <DailySignupsChart refreshKey={refreshKey} />
+
       <div className="admin-role-guide"><div><strong>Người dùng</strong><p>Có 1 lượt tạo ban đầu; vẫn xem và sửa chuyến đã lưu khi hết lượt.</p></div><div><strong>Quản trị viên</strong><p>Cấp thêm lượt tạo và quản lý quyền quản trị. Lượt đã dùng không hoàn lại khi xóa chuyến.</p></div></div>
 
       <section className="admin-users" aria-labelledby="admin-users-heading">
@@ -122,8 +125,8 @@ export default function AdminPage({ currentUserId }) {
             const quota = summarizeTripQuota(user)
             return <tr key={user.id}>
             <td><span className="admin-identity"><span className="admin-avatar">{(user.email || '?').slice(0, 1).toUpperCase()}</span><span className="admin-user-email">{user.email || 'Chưa có email'}{user.id === currentUserId && <small> Tài khoản của bạn</small>}</span></span></td>
-            <td>{new Date(user.created_at).toLocaleDateString('vi-VN')}</td>
-            <td><div className="admin-credit-cell"><strong>Còn {quota.remaining} lượt</strong><small>Đã tạo {quota.used} · admin cấp còn {quota.bonus}</small><div><input type="number" min="1" max="100" step="1" aria-label={`Số lượt cấp cho ${user.email || user.id}`} value={grantAmounts[user.id] ?? 1} onChange={(event) => setGrantAmounts((current) => ({ ...current, [user.id]: event.target.value }))} disabled={updatingId !== null} /><button type="button" onClick={() => grantCredits(user)} disabled={updatingId !== null}>Cấp lượt</button></div></div></td>
+            <td>{new Date(user.created_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</td>
+            <td><div className="admin-credit-cell"><strong>Còn {quota.remaining} lượt</strong><small>Admin cấp còn {quota.bonus}</small><div><input type="number" min="1" max="100" step="1" aria-label={`Số lượt cấp cho ${user.email || user.id}`} value={grantAmounts[user.id] ?? 1} onChange={(event) => setGrantAmounts((current) => ({ ...current, [user.id]: event.target.value }))} disabled={updatingId !== null} /><button type="button" onClick={() => grantCredits(user)} disabled={updatingId !== null}>Cấp lượt</button></div></div></td>
             <td><select aria-label={`Vai trò của ${user.email || user.id}`} value={user.role} disabled={user.id === currentUserId || updatingId !== null} onChange={(event) => changeRole(user, event.target.value)}><option value="user">Người dùng</option><option value="admin">Quản trị viên</option></select></td>
           </tr>})}
         </tbody></table></div>
