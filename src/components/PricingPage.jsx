@@ -48,7 +48,7 @@ const packages = [
 const money = (amount) => `${Number(amount).toLocaleString('vi-VN')}đ`
 const storedOrderKey = (userId) => `tripgenie-payment-order:${userId}`
 
-function Checkout({ order, busy, copied, onCopy, onClose, onRefresh, onRetry }) {
+function Checkout({ order, busy, copied, pollError, onCopy, onClose, onRetry }) {
   const plan = paymentPlans[order.planKey]
   const paid = order.status === 'paid'
   const expired = order.status === 'expired'
@@ -73,7 +73,7 @@ function Checkout({ order, busy, copied, onCopy, onClose, onRefresh, onRetry }) 
                 <div><span>Nội dung chuyển khoản</span><strong>{order.code}</strong><button type="button" onClick={() => onCopy('code', order.code)}><Copy size={14} /> {copied === 'code' ? 'Đã sao chép' : 'Sao chép'}</button></div>
               </div>
             </div>
-            <div className="pricing-checkout-footer"><span>Đang chờ SePay xác nhận giao dịch…</span><button type="button" onClick={onRefresh} disabled={busy}>{busy ? 'Đang kiểm tra…' : 'Kiểm tra lại'}</button></div>
+            <div className="pricing-checkout-footer" role="status" aria-live="polite"><span>{pollError || 'Đang tự động kiểm tra thanh toán. Kết quả sẽ cập nhật sau khi SePay xác nhận…'}</span></div>
           </>}
     </section>
   </div>
@@ -84,6 +84,7 @@ export default function PricingPage({ goTo, tripQuota, session, onLogin, onPayme
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState('')
+  const [pollError, setPollError] = useState('')
   const [copied, setCopied] = useState('')
   const lastPaidOrder = useRef(null)
   const orderId = order?.id
@@ -105,17 +106,32 @@ export default function PricingPage({ goTo, tripQuota, session, onLogin, onPayme
   useEffect(() => {
     if (!orderId || orderStatus !== 'pending' || !session?.user?.id) return
     let active = true
+    let checking = false
     const poll = async () => {
+      if (!active || checking || document.hidden) return
+      checking = true
       try {
         const latest = await getPaymentOrder(orderId)
         if (!active) return
+        setPollError('')
         setOrder(latest)
       } catch {
-        // Keep the checkout visible; the next poll can recover from a network error.
+        if (active) setPollError('Chưa kiểm tra được thanh toán. Hệ thống sẽ tự thử lại…')
+      } finally {
+        checking = false
       }
     }
+    const pollWhenVisible = () => { if (!document.hidden) void poll() }
+    void poll()
     const timer = window.setInterval(poll, 4000)
-    return () => { active = false; window.clearInterval(timer) }
+    document.addEventListener('visibilitychange', pollWhenVisible)
+    window.addEventListener('focus', pollWhenVisible)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', pollWhenVisible)
+      window.removeEventListener('focus', pollWhenVisible)
+    }
   }, [orderId, orderStatus, session?.user?.id])
 
   useEffect(() => {
@@ -129,24 +145,12 @@ export default function PricingPage({ goTo, tripQuota, session, onLogin, onPayme
     if (!session) { onLogin(); return }
     setBusy(true)
     setFeedback('')
+    setPollError('')
     try {
       const created = await createPaymentOrder(planKey)
       setOrder(created)
       setCheckoutOpen(true)
       window.sessionStorage.setItem(storedOrderKey(session.user.id), created.id)
-    } catch (error) {
-      setFeedback(error.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const refreshOrder = async () => {
-    if (!order) return
-    setBusy(true)
-    try {
-      const latest = await getPaymentOrder(order.id)
-      setOrder(latest)
     } catch (error) {
       setFeedback(error.message)
     } finally {
@@ -182,7 +186,7 @@ export default function PricingPage({ goTo, tripQuota, session, onLogin, onPayme
       <p className="pricing-note">Sau khi thanh toán thành công, hệ thống tự cộng số lượt tạo lịch trình ghi trên từng gói. Các tính năng được đánh dấu “Đang phát triển” chưa được kích hoạt.</p>
     </div>
     {checkoutOpen && order && createPortal(
-      <Checkout order={order} busy={busy} copied={copied} onCopy={copy} onClose={() => setCheckoutOpen(false)} onRefresh={refreshOrder} onRetry={startCheckout} />,
+      <Checkout order={order} busy={busy} copied={copied} pollError={pollError} onCopy={copy} onClose={() => setCheckoutOpen(false)} onRetry={startCheckout} />,
       document.body,
     )}
   </main>

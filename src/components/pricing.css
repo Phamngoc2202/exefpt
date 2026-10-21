@@ -42,8 +42,7 @@
 .pricing-checkout-details strong { overflow-wrap: anywhere; color: #153d39; font-size: 17px; }
 .pricing-checkout-details button { display: inline-flex; align-items: center; gap: 5px; width: fit-content; padding: 4px 0; border: 0; background: transparent; color: #087d75; font-size: 12px; font-weight: 700; cursor: pointer; }
 .pricing-checkout-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; padding: 13px 16px; border-radius: 12px; background: #e9f6f2; color: #1c6760; font-size: 13px; }
-.pricing-checkout-footer button, .pricing-checkout-expired button { border: 0; border-radius: 999px; padding: 9px 14px; background: #167a6d; color: #fff; font-weight: 700; cursor: pointer; }
-.pricing-checkout-footer button:disabled { opacity: .65; cursor: wait; }
+.pricing-checkout-expired button { border: 0; border-radius: 999px; padding: 9px 14px; background: #167a6d; color: #fff; font-weight: 700; cursor: pointer; }
 .pricing-checkout-test { padding: 10px 13px; border-radius: 10px; background: #fff1cf; color: #77520c; font-size: 13px; font-weight: 800; }
 .pricing-checkout-success { display: flex; align-items: center; gap: 15px; margin-top: 22px; padding: 20px; border-radius: 14px; background: #e8f6ed; color: #196448; }
 .pricing-checkout-success p, .pricing-checkout-expired p { margin: 0; line-height: 1.6; }
@@ -56,7 +55,6 @@
   .pricing-current { align-items: flex-start; flex-direction: column; }
   .pricing-checkout-grid { grid-template-columns: 1fr; }
   .pricing-checkout-qr { width: min(255px, 100%); margin: 0 auto; }
-  .pricing-checkout-footer { align-items: flex-start; flex-direction: column; }
 }
 @media (max-width: 400px) {
   .pricing-card { padding: 22px; }
