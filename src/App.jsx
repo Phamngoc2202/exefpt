@@ -538,7 +538,7 @@ export default function App() {
       {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} formError={formError} onBack={() => goTo('home')} generating={generating} tripQuota={tripQuota} onSeePlans={() => goTo('pricing')} />}
       {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onAiRefineDay={handleAiRefineDay} aiRefiningDay={aiRefiningDay} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} onCreateShare={handleCreateShare} onRevokeShare={handleRevokeShare} />}
       {page === 'trips' && <TripsPage trips={trips} goTo={goTo} onOpen={handleOpenTrip} onDelete={handleDeleteTrip} deletingId={deletingId} />}
-      {page === 'pricing' && <PricingPage goTo={goTo} tripQuota={tripQuota} session={session} />}
+      {page === 'pricing' && <PricingPage goTo={goTo} tripQuota={tripQuota} session={session} onLogin={openLogin} onPaymentSuccess={() => refreshTripQuota(session.user.id)} />}
       {page === 'admin' && (isAdmin ? <AdminPage currentUserId={session.user.id} /> : <main className="page-shell inner-page"><h1>Không có quyền truy cập</h1><p>Vui lòng đăng nhập bằng tài khoản quản trị.</p></main>)}
     </Suspense>
     <Footer goTo={goTo} />

@@ -5,6 +5,8 @@ import { createGenerateItineraryHandler } from './api/generate-itinerary.js'
 import { createRefineItineraryHandler } from './api/refine-itinerary.js'
 import accommodationsHandler from './api/accommodations.js'
 import dayRouteHandler from './api/day-route.js'
+import { createPaymentOrdersHandler } from './api/payment-orders.js'
+import { createSePayWebhookHandler } from './api/sepay-webhook.js'
 
 function localApis(env) {
   const generateItineraryHandler = createGenerateItineraryHandler({
@@ -21,6 +23,15 @@ function localApis(env) {
     supabaseUrl: env.VITE_SUPABASE_URL,
     supabaseKey: env.VITE_SUPABASE_PUBLISHABLE_KEY,
   })
+  const paymentEnv = {
+    supabaseUrl: env.SUPABASE_URL || env.VITE_SUPABASE_URL,
+    publishableKey: env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    secretKey: env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY,
+    receiverVa: env.SEPAY_RECEIVER_VA,
+    receiverName: env.SEPAY_RECEIVER_NAME,
+    webhookKey: env.SEPAY_WEBHOOK_API_KEY,
+    mode: env.SEPAY_PAYMENT_MODE,
+  }
   return {
     name: 'tripgenie-local-apis',
     configureServer(server) {
@@ -29,6 +40,8 @@ function localApis(env) {
       server.middlewares.use('/api/refine-itinerary', refineItineraryHandler)
       server.middlewares.use('/api/accommodations', accommodationsHandler)
       server.middlewares.use('/api/day-route', dayRouteHandler)
+      server.middlewares.use('/api/payment-orders', createPaymentOrdersHandler(paymentEnv))
+      server.middlewares.use('/api/sepay-webhook', createSePayWebhookHandler(paymentEnv))
     },
   }
 }

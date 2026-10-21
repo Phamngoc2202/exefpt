@@ -8,6 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "test": "node --experimental-test-isolation=none --test",
+    "seed:demo-users": "node --env-file=.env.local scripts/createDemoUsers.mjs",
+    "seed:early-demo-users": "node --env-file=.env.local scripts/createEarlierDemoUsers.mjs",
+    "rename:demo-emails": "node --env-file=.env.local scripts/renameDemoEmails.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

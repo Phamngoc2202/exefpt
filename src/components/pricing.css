@@ -21,14 +21,42 @@
 .pricing-start, .pricing-card-status { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: fit-content; min-height: 42px; margin-top: auto; padding: 10px 16px; border: 0; border-radius: 999px; background: #167a6d; color: white; font-size: 13px; font-weight: 800; }
 .pricing-start { cursor: pointer; }
 .pricing-start:hover { background: #0e6259; }
+.pricing-start:disabled { opacity: .65; cursor: wait; }
 .pricing-card-status { background: #e7ebe8; color: #687a71; }
 .pricing-note { max-width: 930px; margin: 24px auto 0; color: #687b74; font-size: 13px; line-height: 1.6; text-align: center; }
+.pricing-feature-future { color: #798781; }
+.pricing-feature-future small { display: block; color: #8b9790; font-size: 11px; }
+.pricing-feedback { max-width: 930px; margin: 0 auto 20px; padding: 12px 15px; border: 1px solid #e5b9ab; border-radius: 12px; background: #fff4ef; color: #8b3925; font-size: 13px; }
+.pricing-checkout-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 18px; background: rgba(5, 30, 29, .68); }
+.pricing-checkout { position: relative; width: min(720px, 100%); max-height: min(94vh, 900px); overflow-y: auto; padding: clamp(22px, 4vw, 38px); border-radius: 24px; background: #fff; box-shadow: 0 35px 100px rgba(0, 20, 20, .3); }
+.pricing-checkout-close { position: absolute; top: 20px; right: 20px; display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 50%; background: #edf4f0; color: #175a54; cursor: pointer; }
+.pricing-checkout h2 { margin: 12px 0 6px; color: #123e3c; font-size: clamp(26px, 4vw, 36px); letter-spacing: -.04em; }
+.pricing-checkout-intro { max-width: 560px; margin: 0 0 22px; color: #5c6d68; font-size: 14px; line-height: 1.6; }
+.pricing-checkout-grid { display: grid; grid-template-columns: 245px minmax(0, 1fr); gap: 24px; align-items: start; }
+.pricing-checkout-qr { display: grid; justify-items: center; gap: 9px; padding: 9px; border: 1px solid #d9e8e1; border-radius: 16px; background: #f8fbf9; }
+.pricing-checkout-qr img { display: block; width: 100%; height: auto; border-radius: 9px; }
+.pricing-checkout-qr small { color: #607671; font-size: 11px; }
+.pricing-checkout-details { display: grid; gap: 11px; }
+.pricing-checkout-details > div { display: grid; gap: 3px; padding-bottom: 9px; border-bottom: 1px solid #e7eeea; }
+.pricing-checkout-details span { color: #667b75; font-size: 12px; }
+.pricing-checkout-details strong { overflow-wrap: anywhere; color: #153d39; font-size: 17px; }
+.pricing-checkout-details button { display: inline-flex; align-items: center; gap: 5px; width: fit-content; padding: 4px 0; border: 0; background: transparent; color: #087d75; font-size: 12px; font-weight: 700; cursor: pointer; }
+.pricing-checkout-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; padding: 13px 16px; border-radius: 12px; background: #e9f6f2; color: #1c6760; font-size: 13px; }
+.pricing-checkout-footer button, .pricing-checkout-expired button { border: 0; border-radius: 999px; padding: 9px 14px; background: #167a6d; color: #fff; font-weight: 700; cursor: pointer; }
+.pricing-checkout-footer button:disabled { opacity: .65; cursor: wait; }
+.pricing-checkout-test { padding: 10px 13px; border-radius: 10px; background: #fff1cf; color: #77520c; font-size: 13px; font-weight: 800; }
+.pricing-checkout-success { display: flex; align-items: center; gap: 15px; margin-top: 22px; padding: 20px; border-radius: 14px; background: #e8f6ed; color: #196448; }
+.pricing-checkout-success p, .pricing-checkout-expired p { margin: 0; line-height: 1.6; }
+.pricing-checkout-expired { display: grid; justify-items: start; gap: 16px; margin-top: 20px; color: #725643; }
 @media (max-width: 700px) {
   .pricing-page .page-shell { width: min(100% - 28px, 540px); }
   .pricing-heading { margin: 10px auto 30px; }
   .pricing-grid { grid-template-columns: 1fr; gap: 16px; }
   .pricing-card { min-height: 0; padding: 26px; }
   .pricing-current { align-items: flex-start; flex-direction: column; }
+  .pricing-checkout-grid { grid-template-columns: 1fr; }
+  .pricing-checkout-qr { width: min(255px, 100%); margin: 0 auto; }
+  .pricing-checkout-footer { align-items: flex-start; flex-direction: column; }
 }
 @media (max-width: 400px) {
   .pricing-card { padding: 22px; }
