@@ -48,7 +48,7 @@
 .admin-feedback.error { background: #fff1eb; color: #a54d30; }
 .admin-feedback.success { background: #e9f8f2; color: #167352; }
 .admin-table-scroll { overflow-x: auto; }
-.admin-table { width: 100%; min-width: 850px; border-collapse: collapse; text-align: left; }
+.admin-table { width: 100%; min-width: 1180px; border-collapse: collapse; text-align: left; }
 .admin-table th { padding: 13px 25px; border-block: 1px solid #e8f0ef; background: #f8fbfa; color: #70868a; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
 .admin-table td { padding: 15px 25px; border-bottom: 1px solid #eef3f2; color: #536e73; font-size: 13px; }
 .admin-table tr:last-child td { border-bottom: 0; }
@@ -57,6 +57,12 @@
 .admin-avatar { display: grid; place-items: center; width: 35px; height: 35px; flex: none; border-radius: 10px; background: #e5f3f0; color: #087e83; }
 .admin-user-email { overflow-wrap: anywhere; }
 .admin-user-email small { display: block; margin-top: 2px; color: #7e9699; font-size: 10px; font-weight: 500; }
+.admin-purchases { display: grid; gap: 6px; min-width: 175px; }
+.admin-purchases > strong, .admin-spent { color: #0b6971; font-weight: 800; }
+.admin-purchases > div { display: flex; flex-wrap: wrap; gap: 5px; }
+.admin-purchases > div span { padding: 4px 7px; border-radius: 7px; background: #e9f6f2; color: #1c6760; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.admin-purchases small, .admin-no-purchases { color: #789094; font-size: 11px; font-weight: 500; }
+.admin-table td.admin-spent { color: #0b6971; white-space: nowrap; }
 .admin-table select { min-width: 143px; padding: 9px 12px; border: 1px solid #d4e5e3; border-radius: 9px; background: white; color: #12414a; font: inherit; font-weight: 700; cursor: pointer; }
 .admin-table select:disabled { opacity: .64; cursor: not-allowed; }
 .admin-credit-cell { display: grid; gap: 5px; justify-items: start; }
