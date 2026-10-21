@@ -2,12 +2,13 @@ import {
   authClient, bearerToken, paymentEnvironment, readJsonBody, sendJson, serviceClient,
 } from '../src/server/paymentServer.js'
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const MAX_USERS = 20
+const PAGE_SIZE = 20
 const FETCH_SIZE = 500
+const PURCHASE_FILTERS = new Set(['all', 'purchased', 'not_purchased', 'single_trip', 'plus', 'team'])
+const SORT_ORDERS = new Set(['newest', 'highest_spend'])
 
-function summarizeOrders(userIds, orders) {
-  const summaries = Object.fromEntries(userIds.map((id) => [id, {
+function summarizeOrders(users, orders) {
+  const summaries = Object.fromEntries(users.map(({ id }) => [id, {
     purchaseCount: 0, totalSpentVnd: 0, lastPaidAt: null, plans: {},
   }]))
 
@@ -29,6 +30,16 @@ function summarizeOrders(userIds, orders) {
   }
 
   return summaries
+}
+
+async function fetchAll(makeQuery) {
+  const rows = []
+  for (let offset = 0; ; offset += FETCH_SIZE) {
+    const { data, error } = await makeQuery().range(offset, offset + FETCH_SIZE - 1)
+    if (error) throw error
+    rows.push(...(data || []))
+    if ((data || []).length < FETCH_SIZE) return rows
+  }
 }
 
 export function createAdminPaymentsHandler(overrides = {}) {
@@ -75,31 +86,43 @@ export function createAdminPaymentsHandler(overrides = {}) {
         sendJson(response, 400, { error: 'Dữ liệu yêu cầu không hợp lệ.' })
         return
       }
-      const userIds = body?.userIds
-      if (!Array.isArray(userIds) || userIds.length > MAX_USERS
-        || userIds.some((id) => typeof id !== 'string' || !UUID_PATTERN.test(id))) {
-        sendJson(response, 400, { error: 'Danh sách tài khoản không hợp lệ.' })
+      const { pageIndex, search, purchaseFilter, sortOrder } = body || {}
+      if (!Number.isInteger(pageIndex) || pageIndex < 0 || pageIndex > 10_000
+        || typeof search !== 'string' || search.length > 100
+        || !PURCHASE_FILTERS.has(purchaseFilter) || !SORT_ORDERS.has(sortOrder)) {
+        sendJson(response, 400, { error: 'Bộ lọc tài khoản không hợp lệ.' })
         return
       }
 
-      const uniqueIds = [...new Set(userIds)]
-      const orders = []
-      if (uniqueIds.length) {
-        for (let offset = 0; ; offset += FETCH_SIZE) {
-          const { data, error } = await supabase.from('payment_orders')
-            .select('id,user_id,plan_key,amount_vnd,paid_at')
-            .in('user_id', uniqueIds).eq('status', 'paid')
-            .order('id', { ascending: true }).range(offset, offset + FETCH_SIZE - 1)
-          if (error) throw error
-          orders.push(...(data || []))
-          if ((data || []).length < FETCH_SIZE) break
-        }
+      const [users, orders] = await Promise.all([
+        fetchAll(() => supabase.from('app_users')
+          .select('id,email,role,generations_used,bonus_generations,created_at')
+          .order('created_at', { ascending: false }).order('id', { ascending: false })),
+        fetchAll(() => supabase.from('payment_orders')
+          .select('id,user_id,plan_key,amount_vnd,paid_at')
+          .eq('status', 'paid').order('id', { ascending: true })),
+      ])
+      const summaries = summarizeOrders(users, orders)
+      const emailSearch = search.trim().toLocaleLowerCase()
+      const matching = users.filter((user) => {
+        if (emailSearch && !user.email?.toLocaleLowerCase().includes(emailSearch)) return false
+        const payment = summaries[user.id]
+        if (purchaseFilter === 'purchased') return payment.purchaseCount > 0
+        if (purchaseFilter === 'not_purchased') return payment.purchaseCount === 0
+        if (purchaseFilter !== 'all') return Boolean(payment.plans[purchaseFilter])
+        return true
+      })
+      if (sortOrder === 'highest_spend') {
+        matching.sort((a, b) => summaries[b.id].totalSpentVnd - summaries[a.id].totalSpentVnd
+          || b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id))
       }
+      const pageUsers = matching.slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE)
+      const pageSummaries = Object.fromEntries(pageUsers.map(({ id }) => [id, summaries[id]]))
 
-      sendJson(response, 200, { summaries: summarizeOrders(uniqueIds, orders) })
+      sendJson(response, 200, { users: pageUsers, total: matching.length, summaries: pageSummaries })
     } catch (error) {
       console.error('admin-payments:', error?.message || error)
-      sendJson(response, 500, { error: 'Không tải được dữ liệu thanh toán.' })
+      sendJson(response, 500, { error: 'Không tải được danh sách tài khoản và thanh toán.' })
     }
   }
 }
