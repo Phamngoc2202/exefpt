@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ArrowRight, Check, Copy, Sparkles, X } from 'lucide-react'
 import { createPaymentOrder, getPaymentOrder } from '../lib/paymentApi'
 import { paymentPlans } from '../lib/paymentPlans'
@@ -180,6 +181,9 @@ export default function PricingPage({ goTo, tripQuota, session, onLogin, onPayme
       </div>
       <p className="pricing-note">Sau khi thanh toán thành công, hệ thống tự cộng số lượt tạo lịch trình ghi trên từng gói. Các tính năng được đánh dấu “Đang phát triển” chưa được kích hoạt.</p>
     </div>
-    {checkoutOpen && order && <Checkout order={order} busy={busy} copied={copied} onCopy={copy} onClose={() => setCheckoutOpen(false)} onRefresh={refreshOrder} onRetry={startCheckout} />}
+    {checkoutOpen && order && createPortal(
+      <Checkout order={order} busy={busy} copied={copied} onCopy={copy} onClose={() => setCheckoutOpen(false)} onRefresh={refreshOrder} onRetry={startCheckout} />,
+      document.body,
+    )}
   </main>
 }

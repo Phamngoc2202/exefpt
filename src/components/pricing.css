@@ -27,8 +27,8 @@
 .pricing-feature-future { color: #798781; }
 .pricing-feature-future small { display: block; color: #8b9790; font-size: 11px; }
 .pricing-feedback { max-width: 930px; margin: 0 auto 20px; padding: 12px 15px; border: 1px solid #e5b9ab; border-radius: 12px; background: #fff4ef; color: #8b3925; font-size: 13px; }
-.pricing-checkout-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 18px; background: rgba(5, 30, 29, .68); }
-.pricing-checkout { position: relative; width: min(720px, 100%); max-height: min(94vh, 900px); overflow-y: auto; padding: clamp(22px, 4vw, 38px); border-radius: 24px; background: #fff; box-shadow: 0 35px 100px rgba(0, 20, 20, .3); }
+.pricing-checkout-backdrop { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 18px; background: rgba(5, 30, 29, .68); }
+.pricing-checkout { position: relative; width: min(720px, 100%); max-height: min(900px, calc(100vh - 36px)); overflow-y: auto; padding: clamp(22px, 4vw, 38px); border-radius: 24px; background: #fff; box-shadow: 0 35px 100px rgba(0, 20, 20, .3); }
 .pricing-checkout-close { position: absolute; top: 20px; right: 20px; display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 50%; background: #edf4f0; color: #175a54; cursor: pointer; }
 .pricing-checkout h2 { margin: 12px 0 6px; color: #123e3c; font-size: clamp(26px, 4vw, 36px); letter-spacing: -.04em; }
 .pricing-checkout-intro { max-width: 560px; margin: 0 0 22px; color: #5c6d68; font-size: 14px; line-height: 1.6; }
