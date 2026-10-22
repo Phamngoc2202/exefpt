@@ -16,6 +16,16 @@
 
 Lệnh kiểm tra: npm test, npm run lint, npm run build.
 
+## Chỉ cho đăng ký bằng Gmail
+
+Form đăng ký chỉ nhận địa chỉ `@gmail.com`; đăng nhập của tài khoản đã có vẫn hoạt động bình thường. Để áp dụng giới hạn trong Supabase Auth (kể cả khi gọi API trực tiếp):
+
+1. Chạy `supabase/gmail_signup.sql` trong Supabase SQL Editor.
+2. Vào **Authentication > Hooks > Before User Created**, chọn **Postgres Function** `public.hook_gmail_signup` rồi bật và lưu hook.
+3. Kiểm tra hook ở trạng thái bật. Để xác minh phía Supabase, thử gọi đăng ký trực tiếp bằng Supabase Auth SDK (không qua form web): địa chỉ `@yahoo.com` phải bị từ chối, còn địa chỉ `@gmail.com` do bạn sở hữu được phép. Chỉ push hoặc deploy giao diện mà chưa bật hook thì chưa chặn được yêu cầu gửi trực tiếp tới Supabase Auth.
+
+Hook chỉ áp dụng cho tài khoản tạo mới; không khóa tài khoản cũ hoặc chặn người dùng cũ đăng nhập. Đây là kiểm tra tên miền email, không chứng minh hộp thư Gmail có thật; hãy giữ bật xác nhận email trong Supabase Auth.
+
 ## Gợi ý quán ăn bằng Gemini
 
 Khi tạo chuyến đi mới, Gemini thường gợi ý tên quán. Đây là gợi ý **chưa xác minh**; liên kết Google Maps chỉ mở trang tìm kiếm để người dùng kiểm tra địa điểm và đánh giá. Không hiển thị điểm sao do AI tự đoán. Chuyến đi đã lưu còn bữa ăn chung có nút **Gợi ý quán bằng Gemini** để cập nhật mà không tốn thêm lượt tạo chuyến. Tính năng dùng `GEMINI_API_KEY`, không cần `GOOGLE_MAPS_API_KEY` hay Places API.
