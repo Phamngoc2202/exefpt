@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowRight, Check, Copy, Sparkles, X } from 'lucide-react'
 import { createPaymentOrder, getPaymentOrder } from '../lib/paymentApi'
+import { getPaymentAvailability } from '../lib/paymentAvailability'
 import { paymentPlans } from '../lib/paymentPlans'
 import './pricing.css'
 
@@ -86,22 +87,49 @@ export default function PricingPage({ goTo, tripQuota, session, onLogin, onPayme
   const [feedback, setFeedback] = useState('')
   const [pollError, setPollError] = useState('')
   const [copied, setCopied] = useState('')
+  const [paymentEnabled, setPaymentEnabled] = useState(null)
+  const [paymentStatusError, setPaymentStatusError] = useState(false)
   const lastPaidOrder = useRef(null)
   const orderId = order?.id
   const orderStatus = order?.status
 
   useEffect(() => {
-    if (!session?.user?.id) return
+    let active = true
+    const refreshAvailability = async () => {
+      try {
+        const enabled = await getPaymentAvailability()
+        if (!active) return
+        setPaymentEnabled(enabled)
+        setPaymentStatusError(false)
+      } catch {
+        if (!active) return
+        setPaymentEnabled(false)
+        setPaymentStatusError(true)
+      }
+    }
+    void refreshAvailability()
+    const timer = window.setInterval(refreshAvailability, 15_000)
+    window.addEventListener('focus', refreshAvailability)
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener('focus', refreshAvailability) }
+  }, [])
+
+  useEffect(() => {
+    if (!paymentEnabled && orderStatus !== 'paid') setCheckoutOpen(false)
+    if (orderStatus === 'paid') setCheckoutOpen(true)
+  }, [paymentEnabled, orderStatus])
+
+  useEffect(() => {
+    if (!session?.user?.id || paymentEnabled === null) return
     const savedId = window.sessionStorage.getItem(storedOrderKey(session.user.id))
     if (!savedId) return
     let active = true
     getPaymentOrder(savedId).then((loaded) => {
       if (!active) return
       setOrder(loaded)
-      setCheckoutOpen(true)
+      setCheckoutOpen(paymentEnabled || loaded.status === 'paid')
     }).catch(() => window.sessionStorage.removeItem(storedOrderKey(session.user.id)))
     return () => { active = false }
-  }, [session?.user?.id])
+  }, [session?.user?.id, paymentEnabled])
 
   useEffect(() => {
     if (!orderId || orderStatus !== 'pending' || !session?.user?.id) return
@@ -142,16 +170,26 @@ export default function PricingPage({ goTo, tripQuota, session, onLogin, onPayme
   }, [orderId, orderStatus, session?.user?.id, onPaymentSuccess])
 
   const startCheckout = async (planKey) => {
+    if (paymentEnabled !== true) return
     if (!session) { onLogin(); return }
     setBusy(true)
     setFeedback('')
     setPollError('')
     try {
+      if (!(await getPaymentAvailability())) {
+        setPaymentEnabled(false)
+        setFeedback('Thanh toán đang tạm tắt. Vui lòng quay lại sau.')
+        return
+      }
       const created = await createPaymentOrder(planKey)
       setOrder(created)
       setCheckoutOpen(true)
       window.sessionStorage.setItem(storedOrderKey(session.user.id), created.id)
     } catch (error) {
+      if (error.code === 'payments_disabled') {
+        setPaymentEnabled(false)
+        setPaymentStatusError(false)
+      }
       setFeedback(error.message)
     } finally {
       setBusy(false)
@@ -170,6 +208,7 @@ export default function PricingPage({ goTo, tripQuota, session, onLogin, onPayme
         <p>Từ chuyến đi đầu tiên đến kế hoạch cho cả nhóm.</p>
       </div>
       {session && tripQuota && <div className="pricing-current"><div><strong>Lượt tạo hiện có</strong><span>Còn {tripQuota.remaining} lượt tạo chuyến đi{tripQuota.bonus > 0 ? ` · ${tripQuota.bonus} lượt bổ sung` : ''}</span></div>{tripQuota.remaining > 0 && <button type="button" onClick={() => goTo('create')}>Tạo chuyến đi <ArrowRight size={17} /></button>}</div>}
+      {paymentEnabled === false && <div className="pricing-disabled" role="status"><strong>{paymentStatusError ? 'Thanh toán hiện chưa sẵn sàng' : 'Thanh toán đang tạm tắt'}</strong><p>{paymentStatusError ? 'Không kiểm tra được trạng thái thanh toán. Vui lòng thử lại sau.' : 'Hiện chưa thể mua các gói trả phí. Bạn vẫn có thể dùng gói Free và các lượt tạo chuyến đi đã có.'}</p></div>}
       {feedback && <p className="pricing-feedback" role="alert">{feedback}</p>}
       <div className="pricing-grid">
         {packages.map((item) => <article className="pricing-card" key={item.name}>
@@ -179,7 +218,7 @@ export default function PricingPage({ goTo, tripQuota, session, onLogin, onPayme
             <ul>{item.features.map(([feature, active]) => <li className={active ? '' : 'pricing-feature-future'} key={feature}>{feature}{!active && <small>Đang phát triển</small>}</li>)}</ul>
           </div>
           {item.planKey
-            ? <button type="button" className="pricing-start" disabled={busy} onClick={() => startCheckout(item.planKey)}>{busy ? 'Vui lòng chờ…' : 'Thanh toán qua SePay'} <ArrowRight size={17} /></button>
+            ? <button type="button" className="pricing-start" disabled={busy || paymentEnabled !== true} onClick={() => startCheckout(item.planKey)}>{paymentEnabled === null ? 'Đang kiểm tra thanh toán…' : paymentEnabled === false ? 'Tạm tắt thanh toán' : busy ? 'Vui lòng chờ…' : 'Thanh toán qua SePay'} {paymentEnabled === true && <ArrowRight size={17} />}</button>
             : <button type="button" className="pricing-start" onClick={() => goTo('create')}>Bắt đầu miễn phí <ArrowRight size={17} /></button>}
         </article>)}
       </div>

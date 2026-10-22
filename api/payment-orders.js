@@ -73,6 +73,17 @@ export function createPaymentOrdersHandler(overrides = {}) {
         return
       }
 
+      const { data: paymentSettings, error: settingsError } = await supabase
+        .from('payment_settings').select('enabled').eq('id', 1).maybeSingle()
+      if (settingsError || !paymentSettings) {
+        sendJson(response, 503, { error: 'Thanh toán hiện chưa sẵn sàng. Vui lòng thử lại sau.' })
+        return
+      }
+      if (!paymentSettings.enabled) {
+        sendJson(response, 503, { error: 'Thanh toán đang tạm tắt. Vui lòng quay lại sau.', code: 'payments_disabled' })
+        return
+      }
+
       let body
       try { body = await readJsonBody(request) } catch {
         sendJson(response, 400, { error: 'Dữ liệu yêu cầu không hợp lệ.' })
@@ -107,6 +118,10 @@ export function createPaymentOrdersHandler(overrides = {}) {
         }).select('*').single()
         if (!error && data) {
           sendJson(response, 201, { order: publicOrder(data, env) })
+          return
+        }
+        if (error?.message?.includes('payments_disabled')) {
+          sendJson(response, 503, { error: 'Thanh toán đang tạm tắt. Vui lòng quay lại sau.', code: 'payments_disabled' })
           return
         }
         if (error?.code !== '23505') throw error || new Error('payment_order_create_failed')

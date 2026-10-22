@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, RefreshCw, Search, ShieldCheck, Users } from 'lucide-react'
+import { ArrowLeft, ArrowRight, RefreshCw, Search, ShieldCheck, Users, WalletCards } from 'lucide-react'
 import { getAdminUserPage } from '../lib/adminPayments'
+import { getPaymentAvailability } from '../lib/paymentAvailability'
 import { paymentPlans } from '../lib/paymentPlans'
 import { supabase } from '../lib/supabase'
 import { summarizeTripQuota } from '../lib/tripQuota'
@@ -24,6 +25,35 @@ export default function AdminPage({ currentUserId }) {
   const [feedback, setFeedback] = useState(null)
   const [grantAmounts, setGrantAmounts] = useState({})
   const [payments, setPayments] = useState({})
+  const [paymentEnabled, setPaymentEnabled] = useState(null)
+  const [paymentSettingsBusy, setPaymentSettingsBusy] = useState(false)
+  const [paymentSettingsError, setPaymentSettingsError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    getPaymentAvailability().then((enabled) => {
+      if (active) setPaymentEnabled(enabled)
+    }).catch(() => {
+      if (active) setPaymentSettingsError('Không đọc được trạng thái thanh toán. Hãy chạy payment_settings.sql rồi tải lại trang.')
+    })
+    return () => { active = false }
+  }, [])
+
+  const togglePayments = async () => {
+    if (paymentEnabled === null || paymentSettingsBusy) return
+    setPaymentSettingsBusy(true)
+    setPaymentSettingsError('')
+    try {
+      const { data, error } = await supabase.from('payment_settings')
+        .update({ enabled: !paymentEnabled }).eq('id', 1).select('enabled').maybeSingle()
+      if (error || !data) throw error || new Error('update_failed')
+      setPaymentEnabled(data.enabled)
+    } catch {
+      setPaymentSettingsError('Không đổi được trạng thái thanh toán. Hãy kiểm tra quyền admin và thử lại.')
+    } finally {
+      setPaymentSettingsBusy(false)
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -115,6 +145,12 @@ export default function AdminPage({ currentUserId }) {
   return <main className="admin-page inner-page">
     <div className="page-shell">
       <div className="admin-heading"><div><span className="section-kicker"><ShieldCheck size={15} /> TRIPGENIE / QUẢN TRỊ</span><h1>Người dùng và thanh toán</h1><p>Xem gói đã mua, tổng tiền đã thanh toán, phân quyền và cấp thêm lượt tạo cho từng tài khoản.</p></div><span className="admin-count"><Users size={17} /> {total} tài khoản</span></div>
+
+      <section className="admin-payment-settings" aria-labelledby="admin-payment-settings-heading">
+        <div className="admin-payment-settings-icon"><WalletCards size={23} /></div>
+        <div className="admin-payment-settings-copy"><h2 id="admin-payment-settings-heading">Thanh toán qua SePay</h2><p>{paymentEnabled === null ? paymentSettingsError ? 'Chưa đọc được trạng thái thanh toán.' : 'Đang kiểm tra trạng thái thanh toán…' : paymentEnabled ? 'Đang bật. Người dùng có thể tạo đơn cho các gói trả phí.' : 'Đang tạm tắt. Trang bảng giá thông báo tạm tắt và không tạo đơn mới.'}</p><small>Đơn đã tạo vẫn có thể được SePay xác nhận nếu người dùng đã chuyển khoản.</small>{paymentSettingsError && <span role="alert">{paymentSettingsError}</span>}</div>
+        <button type="button" className="admin-payment-switch" role="switch" aria-label="Thanh toán qua SePay" aria-checked={paymentEnabled === true} disabled={paymentEnabled === null || paymentSettingsBusy} onClick={togglePayments}><span />{paymentSettingsBusy ? 'Đang lưu…' : paymentEnabled === null ? 'Chưa sẵn sàng' : paymentEnabled ? 'Đang bật' : 'Đang tắt'}</button>
+      </section>
 
       <DailySignupsChart refreshKey={refreshKey} />
 

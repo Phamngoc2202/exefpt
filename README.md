@@ -12,7 +12,8 @@
 6. Chạy `supabase/auto_save.sql` trong Supabase SQL Editor để tạo chuyến đi và trừ lượt trong cùng một giao dịch. Chạy sau `trip_quota.sql`.
 7. Chạy `supabase/trip_sharing.sql` để bật liên kết công khai chỉ xem, làm mới bản chụp khi chia sẻ lại và cho phép chủ chuyến đi tắt liên kết.
 8. Chạy `supabase/payments.sql` để bật đơn thanh toán SePay và cộng lượt tạo chuyến đi sau khi xác nhận giao dịch. Chạy sau `trip_quota.sql`.
-9. Chạy npm run dev; đăng nhập tài khoản admin và làm mới trang để thấy mục **Quản trị**.
+9. Chạy `supabase/payment_settings.sql` sau `admin.sql` và `payments.sql` để bật công tắc thanh toán trong trang **Quản trị**.
+10. Chạy npm run dev; đăng nhập tài khoản admin và làm mới trang để thấy mục **Quản trị**.
 
 Lệnh kiểm tra: npm test, npm run lint, npm run build.
 
@@ -35,6 +36,7 @@ Nếu đã bật thanh toán cho Gemini API, có thể đặt `GEMINI_MAPS_GROUN
 ## Kết nối SePay cho ba gói trả phí
 
 1. Chạy `supabase/payments.sql` trong Supabase SQL Editor. Script tạo bảng đơn hàng, bảng giao dịch và hàm xác nhận thanh toán. Khách hàng chỉ đọc được đơn của chính mình; chỉ máy chủ dùng khóa bí mật Supabase mới được xác nhận giao dịch.
+   Chạy thêm `supabase/payment_settings.sql` để admin có thể bật/tắt thanh toán. Khi tắt, trang bảng giá thông báo tạm tắt và API từ chối tạo đơn mới. Đơn đã tạo trước đó vẫn được xác nhận nếu giao dịch đến qua SePay.
 2. Trên Vercel, đặt các biến môi trường máy chủ `SUPABASE_SECRET_KEY`, `SEPAY_RECEIVER_VA` (VA riêng của TripGenie), `SEPAY_RECEIVER_NAME`, `SEPAY_WEBHOOK_API_KEY` và `SEPAY_PAYMENT_MODE=live`. Giữ `VITE_SUPABASE_URL` và `VITE_SUPABASE_PUBLISHABLE_KEY` hiện có. Dùng cùng các tên biến trong `.env.local` để chạy thử ở máy. Không đặt tiền tố `VITE_` trước khóa bí mật hoặc API Key webhook.
 3. Trong SePay, tạo webhook mới cho TripGenie. URL: `https://exefpt.vercel.app/api/sepay-webhook`. Chọn **Tiền vào**, **JSON**, đúng tài khoản BIDV và chỉ VA TripGenie. Chọn xác thực **API Key**, đặt đúng chuỗi `SEPAY_WEBHOOK_API_KEY` (ít nhất 24 ký tự ngẫu nhiên), bật gửi lại khi server lỗi. Giữ webhook của website cũ và kiểm tra nó chỉ nhận VA cũ.
 4. Trong Cấu hình chung của SePay, nếu dùng bộ lọc mã thanh toán, đặt tiền tố `TG`, hậu tố 10 ký tự chữ/số. Nội dung trên QR là mã riêng từng đơn, ví dụ `TG8A36D012EF`. Backend còn đọc mã trong `content` nếu trường `code` của webhook trống. Không bật bộ lọc bỏ qua giao dịch thiếu mã trước khi đã kiểm tra payload thực tế của BIDV.

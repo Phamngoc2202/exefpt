@@ -66,7 +66,11 @@ test('payment order price and owner come from the server and verified login', as
     ...environment,
     authClientFactory: () => ({ auth: { getUser: async () => ({ data: { user: { id: 'verified-user' } }, error: null }) } }),
     serviceClientFactory: () => ({
-      from: () => {
+      from: (table) => {
+        if (table === 'payment_settings') return {
+          select() { return this }, eq() { return this },
+          async maybeSingle() { return { data: { enabled: true }, error: null } },
+        }
         fromCount += 1
         if (fromCount === 1) return {
           select() { return this }, eq() { return this }, gt() { return this },
@@ -97,4 +101,41 @@ test('payment order price and owner come from the server and verified login', as
   assert.equal(inserted.receiver_va, environment.receiverVa)
   assert.match(inserted.code, /^TG[0-9A-F]{10}$/)
   assert.equal(new URL(reply.body.order.qrUrl).searchParams.get('des'), inserted.code)
+})
+
+test('payment switch blocks new orders without blocking reads of existing orders', async () => {
+  let orderTableReads = 0
+  const handler = createPaymentOrdersHandler({
+    ...environment,
+    authClientFactory: () => ({ auth: { getUser: async () => ({ data: { user: { id: 'verified-user' } }, error: null }) } }),
+    serviceClientFactory: () => ({
+      from: (table) => {
+        if (table === 'payment_settings') return {
+          select() { return this }, eq() { return this },
+          async maybeSingle() { return { data: { enabled: false }, error: null } },
+        }
+        orderTableReads += 1
+        return {
+          select() { return this }, eq() { return this },
+          async maybeSingle() { return { data: {
+            id: '00000000-0000-4000-8000-000000000001', user_id: 'verified-user',
+            plan_key: 'single_trip', amount_vnd: 20000, credits: 1, code: 'TGABCDEF1234',
+            status: 'paid', expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+          }, error: null } },
+        }
+      },
+    }),
+  })
+
+  const disabled = response()
+  await handler({ method: 'POST', headers: { authorization: 'Bearer valid-token' }, body: { planKey: 'plus' } }, disabled)
+  assert.equal(disabled.statusCode, 503)
+  assert.equal(disabled.body.code, 'payments_disabled')
+  assert.equal(orderTableReads, 0)
+
+  const existing = response()
+  await handler({ method: 'GET', url: '/api/payment-orders?id=00000000-0000-4000-8000-000000000001', headers: { authorization: 'Bearer valid-token' } }, existing)
+  assert.equal(existing.statusCode, 200)
+  assert.equal(existing.body.order.status, 'paid')
+  assert.equal(orderTableReads, 1)
 })

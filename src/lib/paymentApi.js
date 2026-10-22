@@ -19,7 +19,11 @@ async function paymentRequest(path, options = {}) {
   }
 
   const payload = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(payload.error || 'Thanh toán hiện chưa sẵn sàng. Vui lòng thử lại sau.')
+  if (!response.ok) {
+    const error = new Error(payload.error || 'Thanh toán hiện chưa sẵn sàng. Vui lòng thử lại sau.')
+    error.code = payload.code
+    throw error
+  }
   return payload.order
 }
 

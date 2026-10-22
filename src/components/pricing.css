@@ -9,6 +9,9 @@
 .pricing-current strong { color: #176b60; }
 .pricing-current span { color: #5f7770; font-size: 13px; }
 .pricing-current button { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: #0a6e68; font-weight: 800; cursor: pointer; }
+.pricing-disabled { max-width: 930px; margin: 0 auto 24px; padding: 18px 22px; border: 1px solid #ead8bb; border-radius: 16px; background: #fff8eb; color: #705119; }
+.pricing-disabled strong { font-size: 17px; }
+.pricing-disabled p { margin: 5px 0 0; font-size: 13px; line-height: 1.6; }
 .pricing-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; max-width: 930px; margin-inline: auto; }
 .pricing-card { display: flex; flex-direction: column; min-width: 0; min-height: 360px; padding: 30px; border: 1px solid #eef0ee; border-radius: 28px; background: #f4f5f3; }
 .pricing-card-main { flex: 1; }
@@ -21,7 +24,7 @@
 .pricing-start, .pricing-card-status { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: fit-content; min-height: 42px; margin-top: auto; padding: 10px 16px; border: 0; border-radius: 999px; background: #167a6d; color: white; font-size: 13px; font-weight: 800; }
 .pricing-start { cursor: pointer; }
 .pricing-start:hover { background: #0e6259; }
-.pricing-start:disabled { opacity: .65; cursor: wait; }
+.pricing-start:disabled { background: #e7ebe8; color: #687a71; cursor: not-allowed; }
 .pricing-card-status { background: #e7ebe8; color: #687a71; }
 .pricing-note { max-width: 930px; margin: 24px auto 0; color: #687b74; font-size: 13px; line-height: 1.6; text-align: center; }
 .pricing-feature-future { color: #798781; }
