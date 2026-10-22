@@ -18,7 +18,7 @@ Lệnh kiểm tra: npm test, npm run lint, npm run build.
 
 ## Chỉ cho đăng ký bằng Gmail
 
-Form đăng ký chỉ nhận địa chỉ `@gmail.com`; đăng nhập của tài khoản đã có vẫn hoạt động bình thường. Để áp dụng giới hạn trong Supabase Auth (kể cả khi gọi API trực tiếp):
+Form đăng ký chỉ yêu cầu nhập phần tên; đuôi `@gmail.com` được ghép cố định. Đăng nhập của tài khoản đã có vẫn hoạt động bình thường. Để áp dụng giới hạn trong Supabase Auth (kể cả khi gọi API trực tiếp):
 
 1. Chạy `supabase/gmail_signup.sql` trong Supabase SQL Editor.
 2. Vào **Authentication > Hooks > Before User Created**, chọn **Postgres Function** `public.hook_gmail_signup` rồi bật và lưu hook.

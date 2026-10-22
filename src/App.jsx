@@ -8,7 +8,7 @@ import { activityTypeForCategory, createDefaultForm, generatePlan, planFromRow, 
 import { buildTripShareUrl, shareTokenFromSearch } from './lib/tripSharing'
 import { summarizeTripQuota } from './lib/tripQuota'
 import { supabase } from './lib/supabase'
-import { isAllowedSignupEmail } from './lib/signupEmail'
+import { gmailSignupEmail } from './lib/signupEmail'
 import tripGenieLogo from './logo/tripgenie-mark.png'
 
 const DestinationDetailPage = lazy(() => import('./components/DestinationDetailPage'))
@@ -154,15 +154,16 @@ function AccountModal({ session, isAdmin, tripQuota, savedTripCount, onClose, on
 function LoginModal({ onClose, initialMode = 'login' }) {
   const [mode, setMode] = useState(initialMode)
   const [email, setEmail] = useState('')
+  const [signupName, setSignupName] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [done, setDone] = useState(false)
   const handleAuth = async (event) => {
     event.preventDefault()
-    const normalizedEmail = email.trim()
-    if (mode === 'register' && !isAllowedSignupEmail(normalizedEmail)) {
-      setMessage('Chỉ có thể tạo tài khoản bằng địa chỉ @gmail.com.')
+    const normalizedEmail = mode === 'register' ? gmailSignupEmail(signupName) : email.trim()
+    if (mode === 'register' && !normalizedEmail) {
+      setMessage('Vui lòng chỉ nhập phần tên trước @gmail.com.')
       return
     }
     setLoading(true)
@@ -180,7 +181,9 @@ function LoginModal({ onClose, initialMode = 'login' }) {
     {done ? <div className="login-success"><span><Check /></span><h2>Chào mừng trở lại!</h2><p>Tài khoản Supabase của bạn đã được kết nối.</p><button className="primary-button" onClick={onClose}>Tiếp tục khám phá</button></div> : <>
       <h2>{mode === 'login' ? 'Chào mừng trở lại' : 'Tạo tài khoản mới'}</h2><p>{mode === 'login' ? 'Đăng nhập để tiếp tục hành trình của bạn.' : 'Đăng ký để tạo và lưu những chuyến đi của riêng bạn.'}</p>
       <div className="auth-tabs"><button className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setMessage('') }}>Đăng nhập</button><button className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setMessage('') }}>Đăng ký</button></div>
-      <form onSubmit={handleAuth}><label>Email<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder={mode === 'register' ? 'ban@gmail.com' : 'ban@email.com'} />{mode === 'register' && <small>Chỉ hỗ trợ đăng ký bằng email @gmail.com.</small>}</label><label>Mật khẩu<input type="password" minLength="6" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Tối thiểu 6 ký tự" /></label>{message && <p className="auth-message">{message}</p>}<button className="primary-button" type="submit" disabled={loading}>{loading ? <><RefreshCw className="spin" size={17} /> Đang xử lý...</> : <>{mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'} <ArrowRight size={17} /></>}</button></form>
+      <form onSubmit={handleAuth}><label>Email{mode === 'register'
+        ? <span className="signup-email-field"><input type="text" required value={signupName} onChange={(event) => setSignupName(event.target.value)} placeholder="ten-cua-ban" aria-label="Phần tên trước @gmail.com" autoComplete="off" autoCapitalize="none" spellCheck={false} /><span aria-hidden="true">@gmail.com</span></span>
+        : <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ban@email.com" autoComplete="email" />}</label><label>Mật khẩu<input type="password" minLength="6" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Tối thiểu 6 ký tự" /></label>{message && <p className="auth-message">{message}</p>}<button className="primary-button" type="submit" disabled={loading}>{loading ? <><RefreshCw className="spin" size={17} /> Đang xử lý...</> : <>{mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'} <ArrowRight size={17} /></>}</button></form>
       <small className="demo-note">Tài khoản được bảo mật bởi Supabase Auth.</small>
     </>}
   </div></div>
