@@ -7,10 +7,11 @@ import HomePage from './components/home/HomePage'
 import { activityTypeForCategory, createDefaultForm, generatePlan, planFromRow, toTripPayload, validateTripForm } from './lib/tripPlanner'
 import { buildTripShareUrl, shareTokenFromSearch } from './lib/tripSharing'
 import { summarizeTripQuota } from './lib/tripQuota'
-import { supabase } from './lib/supabase'
+import { passwordRecoveryCallback, supabase } from './lib/supabase'
 import { gmailSignupEmail } from './lib/signupEmail'
 import { signupFeedback } from './lib/signupFeedback'
 import { isCorrectMathCaptcha, pickMathCaptcha } from './lib/mathCaptcha'
+import { isPasswordRecoveryRedirect, passwordRecoveryRedirectUrl, urlWithoutPasswordRecovery } from './lib/passwordRecovery'
 import tripGenieLogo from './logo/tripgenie-mark.png'
 
 const DestinationDetailPage = lazy(() => import('./components/DestinationDetailPage'))
@@ -153,16 +154,21 @@ function AccountModal({ session, isAdmin, tripQuota, savedTripCount, onClose, on
   </section></div>
 }
 
-function LoginModal({ onClose, initialMode = 'login' }) {
+function LoginModal({ onClose, initialMode = 'login', recoveryStatus, onRecovered }) {
   const [mode, setMode] = useState(initialMode)
   const [email, setEmail] = useState('')
   const [signupName, setSignupName] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [done, setDone] = useState(false)
   const [captchaQuestion, setCaptchaQuestion] = useState(() => pickMathCaptcha())
   const [captchaAnswer, setCaptchaAnswer] = useState('')
+  useEffect(() => { setMode(initialMode) }, [initialMode])
+  useEffect(() => {
+    if (initialMode === 'reset' && recoveryStatus === 'verified') setMode('reset')
+  }, [initialMode, recoveryStatus])
   const changeCaptcha = () => {
     setCaptchaQuestion((current) => pickMathCaptcha(current.id))
     setCaptchaAnswer('')
@@ -171,6 +177,7 @@ function LoginModal({ onClose, initialMode = 'login' }) {
     event.preventDefault()
     const normalizedEmail = mode === 'register' ? gmailSignupEmail(signupName) : email.trim()
     if (mode === 'register' && !normalizedEmail) {
+      changeCaptcha()
       setMessage('Vui lòng chỉ nhập phần tên trước @gmail.com.')
       return
     }
@@ -179,6 +186,7 @@ function LoginModal({ onClose, initialMode = 'login' }) {
       setMessage('Đáp án chưa đúng. Hãy giải câu hỏi mới để đăng ký.')
       return
     }
+    if (mode === 'register') changeCaptcha()
     setLoading(true)
     setMessage('')
     const result = mode === 'login'
@@ -188,7 +196,6 @@ function LoginModal({ onClose, initialMode = 'login' }) {
     if (mode === 'register') {
       const feedback = signupFeedback(result)
       if (feedback) {
-        if (result.error) changeCaptcha()
         setMessage(feedback)
         return
       }
@@ -201,16 +208,66 @@ function LoginModal({ onClose, initialMode = 'login' }) {
     }
     setDone(true)
   }
-  return <div className="modal-backdrop" onMouseDown={onClose}><div className={`login-modal${mode === 'register' ? ' is-register' : ''}`} onMouseDown={(event) => event.stopPropagation()}>
-    <button className="modal-close" onClick={onClose}><X size={19} /></button><Logo onClick={() => {}} />
-    {done ? <div className="login-success"><span><Check /></span><h2>Chào mừng trở lại!</h2><p>Tài khoản Supabase của bạn đã được kết nối.</p><button className="primary-button" onClick={onClose}>Tiếp tục khám phá</button></div> : <>
-      <h2>{mode === 'login' ? 'Chào mừng trở lại' : 'Tạo tài khoản mới'}</h2><p>{mode === 'login' ? 'Đăng nhập để tiếp tục hành trình của bạn.' : 'Đăng ký để tạo và lưu những chuyến đi của riêng bạn.'}</p>
-      <div className="auth-tabs"><button className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setMessage('') }}>Đăng nhập</button><button className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); changeCaptcha(); setMessage('') }}>Đăng ký</button></div>
-      <form onSubmit={handleAuth}><label>Email{mode === 'register'
-        ? <span className="signup-email-field"><input type="text" required value={signupName} onChange={(event) => setSignupName(event.target.value)} placeholder="Nhập tên Gmail của bạn" aria-label="Tên Gmail trước @gmail.com" autoComplete="off" autoCapitalize="none" spellCheck={false} /><span aria-hidden="true">@gmail.com</span></span>
-        : <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ban@email.com" autoComplete="email" />}</label><label>Mật khẩu<input type="password" minLength="6" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Tối thiểu 6 ký tự" /></label>
-        {mode === 'register' && <div className="signup-captcha"><div className="signup-captcha-heading"><strong>Xác nhận đăng ký</strong><button type="button" onClick={() => { changeCaptcha(); setMessage('') }} aria-label="Đổi câu hỏi toán"><RefreshCw size={14} /> Đổi câu</button></div><label className="signup-captcha-row"><span>Giải phép tính <strong className="signup-captcha-question" aria-live="polite">{captchaQuestion.question}</strong></span><input type="text" inputMode="numeric" pattern="[0-9]*" maxLength="3" required value={captchaAnswer} onChange={(event) => { setCaptchaAnswer(event.target.value.replace(/\D/g, '')); if (message.startsWith('Đáp án chưa đúng')) setMessage('') }} placeholder="Đáp án" autoComplete="off" /></label></div>}
-        {message && <p className="auth-message" role="alert">{message}</p>}<button className="primary-button" type="submit" disabled={loading}>{loading ? <><RefreshCw className="spin" size={17} /> Đang xử lý...</> : <>{mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'} <ArrowRight size={17} /></>}</button></form>
+  const requestPasswordReset = async (event) => {
+    event.preventDefault()
+    setLoading(true)
+    setMessage('')
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: passwordRecoveryRedirectUrl(window.location),
+    })
+    setLoading(false)
+    setMessage(error?.message || 'Nếu email này có tài khoản, bạn sẽ nhận được liên kết đặt lại mật khẩu. Hãy kiểm tra hộp thư.')
+  }
+  const updatePassword = async (event) => {
+    event.preventDefault()
+    if (recoveryStatus !== 'verified') return
+    if (password !== confirmPassword) {
+      setMessage('Hai mật khẩu không khớp. Vui lòng nhập lại.')
+      return
+    }
+    setLoading(true)
+    setMessage('')
+    const { error } = await supabase.auth.updateUser({ password })
+    setLoading(false)
+    if (error) {
+      setMessage(error.message)
+      return
+    }
+    onRecovered()
+    setDone(true)
+  }
+  return <div className="modal-backdrop" onMouseDown={onClose}><div className={`login-modal${mode === 'register' ? ' is-register' : ''}`} role="dialog" aria-modal="true" aria-label="Tài khoản TripGenie" onMouseDown={(event) => event.stopPropagation()}>
+    <button className="modal-close" type="button" onClick={onClose} aria-label="Đóng"><X size={19} /></button><Logo onClick={() => {}} />
+    {done ? <div className="login-success"><span><Check /></span><h2>{mode === 'reset' ? 'Đã đổi mật khẩu' : 'Chào mừng trở lại!'}</h2><p>{mode === 'reset' ? 'Mật khẩu mới đã được lưu. Bạn có thể tiếp tục sử dụng TripGenie.' : 'Tài khoản Supabase của bạn đã được kết nối.'}</p><button className="primary-button" type="button" onClick={onClose}>Tiếp tục khám phá</button></div> : <>
+      <h2>{mode === 'login' ? 'Chào mừng trở lại' : mode === 'register' ? 'Tạo tài khoản mới' : mode === 'forgot' ? 'Quên mật khẩu?' : 'Đặt lại mật khẩu'}</h2>
+      <p>{mode === 'login' ? 'Đăng nhập để tiếp tục hành trình của bạn.' : mode === 'register' ? 'Đăng ký để tạo và lưu những chuyến đi của riêng bạn.' : mode === 'forgot' ? 'Nhập email đăng nhập để nhận liên kết đặt lại mật khẩu.' : 'Tạo mật khẩu mới cho tài khoản của bạn.'}</p>
+      {(mode === 'login' || mode === 'register') && <>
+        <div className="auth-tabs"><button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setMessage('') }}>Đăng nhập</button><button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); changeCaptcha(); setMessage('') }}>Đăng ký</button></div>
+        <form onSubmit={handleAuth}><label>Email{mode === 'register'
+          ? <span className="signup-email-field"><input type="text" required value={signupName} onChange={(event) => setSignupName(event.target.value)} placeholder="Nhập tên Gmail của bạn" aria-label="Tên Gmail trước @gmail.com" autoComplete="off" autoCapitalize="none" spellCheck={false} /><span aria-hidden="true">@gmail.com</span></span>
+          : <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ban@email.com" autoComplete="email" />}</label>
+          <label>Mật khẩu<input type="password" minLength="6" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Tối thiểu 6 ký tự" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} /></label>
+          {mode === 'login' && <button className="auth-secondary-link auth-forgot-link" type="button" onClick={() => { setMode('forgot'); setMessage('') }}>Quên mật khẩu?</button>}
+          {mode === 'register' && <div className="signup-captcha"><div className="signup-captcha-heading"><strong>Xác nhận đăng ký</strong><button type="button" onClick={() => { changeCaptcha(); setMessage('') }} aria-label="Đổi câu hỏi toán"><RefreshCw size={14} /> Đổi câu</button></div><label className="signup-captcha-row"><span>Giải phép tính <strong className="signup-captcha-question" aria-live="polite">{captchaQuestion.question}</strong></span><input type="text" inputMode="numeric" pattern="[0-9]*" maxLength="3" value={captchaAnswer} onChange={(event) => { setCaptchaAnswer(event.target.value.replace(/\D/g, '')); if (message.startsWith('Đáp án chưa đúng')) setMessage('') }} placeholder="Đáp án" autoComplete="off" /></label></div>}
+          {message && <p className="auth-message" role="alert">{message}</p>}
+          <button className="primary-button" type="submit" disabled={loading}>{loading ? <><RefreshCw className="spin" size={17} /> Đang xử lý...</> : <>{mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'} <ArrowRight size={17} /></>}</button>
+        </form>
+      </>}
+      {mode === 'forgot' && <form onSubmit={requestPasswordReset}>
+        <label>Email đăng nhập<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ban@gmail.com" autoComplete="email" /></label>
+        {message && <p className="auth-message" role="status">{message}</p>}
+        <button className="primary-button" type="submit" disabled={loading}>{loading ? 'Đang gửi...' : 'Gửi liên kết đặt lại mật khẩu'}</button>
+        <button className="auth-secondary-link" type="button" onClick={() => { setMode('login'); setMessage('') }}>Quay lại đăng nhập</button>
+      </form>}
+      {mode === 'reset' && (recoveryStatus === 'verified' ? <form onSubmit={updatePassword}>
+        <label>Mật khẩu mới<input type="password" minLength="6" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Tối thiểu 6 ký tự" autoComplete="new-password" /></label>
+        <label>Nhập lại mật khẩu mới<input type="password" minLength="6" required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Nhập lại mật khẩu" autoComplete="new-password" /></label>
+        {message && <p className="auth-message" role="alert">{message}</p>}
+        <button className="primary-button" type="submit" disabled={loading}>{loading ? 'Đang lưu...' : 'Lưu mật khẩu mới'}</button>
+      </form> : <div className="auth-reset-state" role="status">
+        <p>{recoveryStatus === 'expired' ? 'Liên kết không hợp lệ hoặc đã hết hạn. Hãy yêu cầu liên kết mới.' : 'Đang xác minh liên kết đặt lại mật khẩu...'}</p>
+        <button className="auth-secondary-link" type="button" onClick={() => { setMode('forgot'); setMessage('') }}>Gửi lại liên kết</button>
+      </div>)}
       <small className="demo-note">Tài khoản được bảo mật bởi Supabase Auth.</small>
     </>}
   </div></div>
@@ -222,6 +279,7 @@ function Footer({ goTo }) {
 
 export default function App() {
   const initialShareToken = useRef(shareTokenFromSearch(window.location.search)).current
+  const recoveryRequested = useRef(isPasswordRecoveryRedirect(window.location)).current
   const publicShareActive = useRef(Boolean(initialShareToken))
   const [page, setPage] = useState(initialShareToken ? 'shared' : 'home')
   const [shareToken, setShareToken] = useState(initialShareToken)
@@ -234,9 +292,10 @@ export default function App() {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
-  const [loginOpen, setLoginOpen] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(recoveryRequested)
   const [accountOpen, setAccountOpen] = useState(false)
-  const [authMode, setAuthMode] = useState('login')
+  const [authMode, setAuthMode] = useState(recoveryRequested ? 'reset' : 'login')
+  const [recoveryStatus, setRecoveryStatus] = useState(recoveryRequested ? 'waiting' : 'idle')
   const [pendingPage, setPendingPage] = useState(null)
   const [session, setSession] = useState(null)
   const [adminUserId, setAdminUserId] = useState(null)
@@ -255,16 +314,38 @@ export default function App() {
   }, [toast])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    if (recoveryStatus !== 'waiting') return
+    const timer = setTimeout(() => setRecoveryStatus('expired'), 3000)
+    return () => clearTimeout(timer)
+  }, [recoveryStatus])
+
+  useEffect(() => {
+    supabase.auth.initialize().then(({ error }) => {
+      supabase.auth.getSession().then(({ data }) => {
+        setSession(data.session)
+        if (passwordRecoveryCallback && !error && data.session) {
+          setRecoveryStatus('verified')
+          setAuthMode('reset')
+          setLoginOpen(true)
+        } else if (recoveryRequested && error) {
+          setRecoveryStatus('expired')
+        }
+      })
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession)
+      if (event === 'PASSWORD_RECOVERY') {
+        setRecoveryStatus('verified')
+        setAuthMode('reset')
+        setLoginOpen(true)
+      }
       if (!nextSession) {
         if (!publicShareActive.current) setPage((current) => protectedPages.has(current) || current === 'admin' ? 'home' : current)
         setPlan(null); setTrips([]); setAdminUserId(null); setTripQuota(null)
       }
     })
     return () => subscription.unsubscribe()
-  }, [])
+  }, [recoveryRequested])
   useEffect(() => {
     if (!shareToken) return
     let active = true
@@ -611,7 +692,19 @@ export default function App() {
     setToast('Bạn đã đăng xuất.')
   }
   const openLogin = () => { setPendingPage(null); setAuthMode('login'); setLoginOpen(true) }
-  const closeLogin = () => { setPendingPage(null); setLoginOpen(false) }
+  const closeLogin = () => {
+    setPendingPage(null)
+    setLoginOpen(false)
+    if (recoveryStatus === 'verified') supabase.auth.signOut()
+    if (recoveryStatus !== 'idle') {
+      setRecoveryStatus('idle')
+      window.history.replaceState(window.history.state, '', urlWithoutPasswordRecovery(window.location))
+    }
+  }
+  const finishPasswordRecovery = () => {
+    setRecoveryStatus('complete')
+    window.history.replaceState(window.history.state, '', urlWithoutPasswordRecovery(window.location))
+  }
   const updateSessionUser = (user) => setSession((current) => current ? { ...current, user } : current)
 
   return <div className="app">
@@ -628,7 +721,7 @@ export default function App() {
     </Suspense>
     <Footer goTo={goTo} />
     <ZaloContact />
-    {loginOpen && <LoginModal onClose={closeLogin} initialMode={authMode} />}
+    {loginOpen && <LoginModal onClose={closeLogin} initialMode={authMode} recoveryStatus={recoveryStatus} onRecovered={finishPasswordRecovery} />}
     {accountOpen && session && <AccountModal session={session} isAdmin={isAdmin} tripQuota={tripQuota} savedTripCount={trips.length} onClose={() => setAccountOpen(false)} onLogout={handleLogout} onUserUpdated={updateSessionUser} />}
     {generating && <AiGeneratingPopup />}
     {toast && <button className="toast" onClick={() => setToast('')}><Check size={16} /> {toast}<X size={15} /></button>}

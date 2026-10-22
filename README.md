@@ -21,13 +21,19 @@ Lệnh kiểm tra: npm test, npm run lint, npm run build.
 
 Form đăng ký chỉ yêu cầu nhập phần tên; đuôi `@gmail.com` được ghép cố định. Đăng nhập của tài khoản đã có vẫn hoạt động bình thường. Để áp dụng giới hạn trong Supabase Auth (kể cả khi gọi API trực tiếp):
 
-Form đăng ký còn hỏi ngẫu nhiên một trong 100 phép cộng, trừ, nhân, chia đơn giản và kiểm tra đáp án trước khi gửi yêu cầu. Đây là bước kiểm tra tại giao diện; yêu cầu gọi trực tiếp Supabase Auth vẫn có thể bỏ qua câu hỏi, nên không thay thế CAPTCHA ở phía Supabase nếu cần chống bot thật.
+Form đăng ký còn hỏi ngẫu nhiên một trong 200 phép cộng, trừ, nhân, chia đơn giản (gồm 100 phép cộng số có hai chữ số với số có một chữ số) và kiểm tra đáp án trước khi gửi yêu cầu. Câu hỏi tự đổi sau mỗi lần thử đăng ký. Đây là bước kiểm tra tại giao diện; yêu cầu gọi trực tiếp Supabase Auth vẫn có thể bỏ qua câu hỏi, nên không thay thế CAPTCHA ở phía Supabase nếu cần chống bot thật.
 
 1. Chạy `supabase/gmail_signup.sql` trong Supabase SQL Editor.
 2. Vào **Authentication > Hooks > Before User Created**, chọn **Postgres Function** `public.hook_gmail_signup` rồi bật và lưu hook.
 3. Kiểm tra hook ở trạng thái bật. Để xác minh phía Supabase, thử gọi đăng ký trực tiếp bằng Supabase Auth SDK (không qua form web): địa chỉ `@yahoo.com` phải bị từ chối, còn địa chỉ `@gmail.com` do bạn sở hữu được phép. Chỉ push hoặc deploy giao diện mà chưa bật hook thì chưa chặn được yêu cầu gửi trực tiếp tới Supabase Auth.
 
 Hook chỉ áp dụng cho tài khoản tạo mới; không khóa tài khoản cũ hoặc chặn người dùng cũ đăng nhập. Đây là kiểm tra tên miền email, không chứng minh hộp thư Gmail có thật; hãy giữ bật xác nhận email trong Supabase Auth.
+
+## Quên mật khẩu
+
+Trong hộp đăng nhập, chọn **Quên mật khẩu?**, nhập email tài khoản và mở liên kết Supabase gửi đến hộp thư. Sau khi liên kết đưa người dùng về TripGenie, nhập và xác nhận mật khẩu mới. Thông báo gửi email không tiết lộ địa chỉ đã đăng ký hay chưa.
+
+Trong Supabase Dashboard > **Authentication > URL Configuration**, đặt **Site URL** là `https://exefpt.vercel.app` và thêm hai **Redirect URLs**: `https://exefpt.vercel.app/?reset-password=1` và `http://localhost:5173/?reset-password=1`. Nếu đổi domain hoặc cổng chạy local, cập nhật URL tương ứng. Giữ mẫu email **Reset Password** của Supabase có liên kết xác nhận để người dùng mở được trang đặt lại mật khẩu.
 
 ## Gợi ý quán ăn bằng Gemini
 

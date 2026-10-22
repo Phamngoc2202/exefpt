@@ -3,7 +3,7 @@ const makeQuestion = (left, operator, right, answer) => ({
   answer,
 })
 
-// 25 questions per operation. The answers are calculated once when the app loads.
+// 25 questions per operation, plus 100 two-digit + one-digit questions.
 export const mathCaptchaQuestions = [
   ...Array.from({ length: 25 }, (_, i) => {
     const left = 3 + i
@@ -24,6 +24,12 @@ export const mathCaptchaQuestions = [
     const right = 2 + i % 5
     const answer = 7 + Math.floor(i / 5)
     return makeQuestion(right * answer, '÷', right, answer)
+  }),
+  ...Array.from({ length: 100 }, (_, i) => {
+    const pair = Math.floor(i / 2)
+    const left = 30 + pair
+    const right = 1 + ((pair * 7 + (i % 2) * 4) % 9)
+    return makeQuestion(left, '+', right, left + right)
   }),
 ].map((item, index) => ({ id: index + 1, ...item }))
 
