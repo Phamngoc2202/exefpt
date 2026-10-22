@@ -21,6 +21,8 @@ Lệnh kiểm tra: npm test, npm run lint, npm run build.
 
 Form đăng ký chỉ yêu cầu nhập phần tên; đuôi `@gmail.com` được ghép cố định. Đăng nhập của tài khoản đã có vẫn hoạt động bình thường. Để áp dụng giới hạn trong Supabase Auth (kể cả khi gọi API trực tiếp):
 
+Form đăng ký còn hỏi ngẫu nhiên một trong 100 phép cộng, trừ, nhân, chia đơn giản và kiểm tra đáp án trước khi gửi yêu cầu. Đây là bước kiểm tra tại giao diện; yêu cầu gọi trực tiếp Supabase Auth vẫn có thể bỏ qua câu hỏi, nên không thay thế CAPTCHA ở phía Supabase nếu cần chống bot thật.
+
 1. Chạy `supabase/gmail_signup.sql` trong Supabase SQL Editor.
 2. Vào **Authentication > Hooks > Before User Created**, chọn **Postgres Function** `public.hook_gmail_signup` rồi bật và lưu hook.
 3. Kiểm tra hook ở trạng thái bật. Để xác minh phía Supabase, thử gọi đăng ký trực tiếp bằng Supabase Auth SDK (không qua form web): địa chỉ `@yahoo.com` phải bị từ chối, còn địa chỉ `@gmail.com` do bạn sở hữu được phép. Chỉ push hoặc deploy giao diện mà chưa bật hook thì chưa chặn được yêu cầu gửi trực tiếp tới Supabase Auth.
