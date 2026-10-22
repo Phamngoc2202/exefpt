@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, ArrowUpRight, CalendarDays, Clock, CloudSun, Compass, ExternalLink, Map, MapPin, Newspaper, RotateCcw, Route, Search, ShieldCheck, Sparkles, Users, WalletCards } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, CalendarDays, Clock, CloudSun, Compass, ExternalLink, Map, MapPin, Newspaper, RotateCcw, Route, Search, ShieldCheck, Sparkles, Users, WalletCards, X } from 'lucide-react'
 import PersistentTravelScene from '../3d/PersistentTravelScene'
 import { destinationImages, destinationImageSets } from '../../data/destinationImages'
 import { destinationNames, northernDestinations } from '../../data/northernDestinations'
@@ -7,6 +7,9 @@ import { departurePointNames } from '../../data/departurePoints'
 import { addDays, countTripDays, createDefaultForm, generatePlan, summarizePlan } from '../../lib/tripPlanner'
 
 const formatVnd = (value) => `${new Intl.NumberFormat('vi-VN').format(value)} ₫`
+const showcaseDismissalKey = 'tripgenie-thanh-xuan-valley-showcase-dismissed'
+const landscapeShowcase = '/showcase/thanh-xuan-valley-landscape.jpg'
+const portraitShowcase = '/showcase/thanh-xuan-valley-portrait.jpg'
 const sampleForm = createDefaultForm()
 const samplePlan = generatePlan(sampleForm)
 const sampleSummary = summarizePlan(samplePlan)
@@ -47,6 +50,9 @@ export default function HomePage({ goTo, form, setForm, onExplore }) {
   const [destinationQuery, setDestinationQuery] = useState('')
   const [searchError, setSearchError] = useState('')
   const [travelNews, setTravelNews] = useState({ articles: [], loading: true, error: '' })
+  const [showcaseDismissed, setShowcaseDismissed] = useState(() => {
+    try { return window.sessionStorage.getItem(showcaseDismissalKey) === '1' } catch { return false }
+  })
   const exploreStageRef = useRef(null)
   const exploreOpenRef = useRef(null)
   const exploreCloseRef = useRef(null)
@@ -132,6 +138,10 @@ export default function HomePage({ goTo, form, setForm, onExplore }) {
     setSearchError('')
     setActiveDestination(city)
     onExplore(city)
+  }
+  const dismissShowcase = () => {
+    setShowcaseDismissed(true)
+    try { window.sessionStorage.setItem(showcaseDismissalKey, '1') } catch { /* Browsers may block storage. */ }
   }
 
   return <main className="immersive-home">
@@ -288,6 +298,16 @@ export default function HomePage({ goTo, form, setForm, onExplore }) {
           </article>)}</div>}
       <p className="news-attribution">Nội dung được tổng hợp từ RSS chính thức của VnExpress Du lịch. Bản quyền bài viết thuộc về đơn vị xuất bản.</p>
     </section>
+
+    {!showcaseDismissed && <section className="home-showcase" aria-label="Nội dung tài trợ">
+      <div className="home-showcase-shell">
+        <picture className="home-showcase-picture">
+          <source media="(max-width: 760px)" srcSet={portraitShowcase} />
+          <img src={landscapeShowcase} width="1376" height="768" alt="Thanh Xuân Valley, phân khu Camellia Residences" loading="lazy" decoding="async" onError={() => setShowcaseDismissed(true)} />
+        </picture>
+        <button className="home-showcase-close" type="button" onClick={dismissShowcase} aria-label="Đóng nội dung tài trợ"><X size={19} /></button>
+      </div>
+    </section>}
 
     <section className="home-planner home-section home-reveal" id="lap-ke-hoach" aria-labelledby="planner-heading">
       <div className="home-planner-intro"><span className="home-section-label">05 / LẬP KẾ HOẠCH</span><h2 id="planner-heading">Chuyến đi tiếp theo<br /><em>bắt đầu ở đây.</em></h2><p>Cho TripGenie biết điều bạn muốn. Bạn sẽ được tiếp tục tinh chỉnh sở thích, lịch trình và ngân sách ở bước kế tiếp.</p><span className="planner-orbit" aria-hidden="true"><Compass size={72} strokeWidth={.7} /></span></div>
