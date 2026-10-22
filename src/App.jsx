@@ -19,7 +19,7 @@ const ItineraryPage = lazy(() => import('./components/TripPages').then((module) 
 const TripsPage = lazy(() => import('./components/TripPages').then((module) => ({ default: module.TripsPage })))
 const SharedTripPage = lazy(() => import('./components/TripSharing').then((module) => ({ default: module.SharedTripPage })))
 
-const protectedPages = new Set(['create', 'itinerary', 'trips'])
+const protectedPages = new Set(['itinerary', 'trips'])
 
 function Logo({ onClick }) {
   return <button className="brand" onClick={onClick} aria-label="TripGenie — về trang chủ"><span className="brand-mark"><img src={tripGenieLogo} alt="" /></span><span>TripGenie</span></button>
@@ -232,7 +232,7 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession)
       if (!nextSession) {
-        if (!publicShareActive.current) setPage('home')
+        if (!publicShareActive.current) setPage((current) => protectedPages.has(current) || current === 'admin' ? 'home' : current)
         setPlan(null); setTrips([]); setAdminUserId(null); setTripQuota(null)
       }
     })
@@ -288,7 +288,8 @@ export default function App() {
       setPage(pendingPage === 'itinerary' && !plan ? 'create' : pendingPage)
       setPendingPage(null)
       setLoginOpen(false)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      if (pendingPage === 'create') setToast('Đã đăng nhập. Thông tin chuyến đi vẫn được giữ; bấm Tạo và lưu chuyến đi để tiếp tục.')
+      else window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [session, pendingPage, plan])
 
@@ -316,8 +317,8 @@ export default function App() {
     if (protectedPages.has(target)) {
       const { data } = await supabase.auth.getSession()
       if (!data.session) { openRegistrationFor(target); return }
-      if (target === 'create') await refreshTripQuota(data.session.user.id)
     }
+    if (target === 'create' && session?.user?.id) await refreshTripQuota(session.user.id)
     if (target === 'pricing' && session?.user?.id) await refreshTripQuota(session.user.id)
     setPage(target === 'itinerary' && !plan ? 'create' : target)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -330,13 +331,18 @@ export default function App() {
   const handleGenerate = async () => {
     if (generationInProgress.current) return
     generationInProgress.current = true
-    setGenerating(true)
     try {
-      const { data } = await supabase.auth.getSession()
-      if (!data.session) { openRegistrationFor('create'); return }
       const error = validateTripForm(form)
       setFormError(error)
       if (error) return
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) {
+        setPendingPage('create')
+        setAuthMode('login')
+        setLoginOpen(true)
+        return
+      }
+      setGenerating(true)
       const response = await fetch('/api/generate-itinerary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}` },
@@ -587,7 +593,7 @@ export default function App() {
       {page === 'home' && <HomePage goTo={goTo} form={form} setForm={updateForm} onExplore={(city) => goTo('destination', city)} />}
       {page === 'destination' && <DestinationDetailPage city={selectedDestination} onBack={() => goTo('home')} onPlan={handlePlanDestination} />}
       {page === 'shared' && <SharedTripPage state={sharedTripState} onCreateOwn={() => goTo('create')} onBackHome={() => goTo('home')} />}
-      {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} formError={formError} onBack={() => goTo('home')} generating={generating} tripQuota={tripQuota} onSeePlans={() => goTo('pricing')} />}
+      {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} formError={formError} onBack={() => goTo('home')} generating={generating} tripQuota={tripQuota} needsLogin={!session} onSeePlans={() => goTo('pricing')} />}
       {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onAiRefineDay={handleAiRefineDay} aiRefiningDay={aiRefiningDay} onSuggestRestaurants={handleSuggestRestaurants} suggestingRestaurants={suggestingRestaurants} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} onCreateShare={handleCreateShare} onRevokeShare={handleRevokeShare} />}
       {page === 'trips' && <TripsPage trips={trips} goTo={goTo} onOpen={handleOpenTrip} onDelete={handleDeleteTrip} deletingId={deletingId} />}
       {page === 'pricing' && <PricingPage goTo={goTo} tripQuota={tripQuota} session={session} onLogin={openLogin} onPaymentSuccess={() => refreshTripQuota(session.user.id)} />}

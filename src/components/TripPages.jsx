@@ -28,7 +28,7 @@ const activityIcons = { food: Utensils, hotel: Hotel, transport: Navigation, pla
 const formatMoney = (value) => `${new Intl.NumberFormat('vi-VN').format(value)}đ`
 const aiDaySuggestions = ['Nhẹ nhàng hơn', 'Giảm chi phí', 'Ưu tiên chụp ảnh', 'Thêm trải nghiệm địa phương']
 
-export function CreateTripPage({ form, setForm, onGenerate, formError, onBack, generating = false, tripQuota, onSeePlans }) {
+export function CreateTripPage({ form, setForm, onGenerate, formError, onBack, generating = false, tripQuota, needsLogin = false, onSeePlans }) {
   const destination = findDestination(form.destination)
   const toggleInterest = (interest) => {
     setForm((current) => ({
@@ -102,10 +102,11 @@ export function CreateTripPage({ form, setForm, onGenerate, formError, onBack, g
             <small>AI sẽ dùng yêu cầu này để chọn và sắp xếp hoạt động phù hợp hơn.</small>
           </label>
           {formError && <p className="form-error" role="alert">{formError}</p>}
+          {needsLogin && <p className="quota-note">Bạn có thể điền kế hoạch trước. Đăng nhập để tạo và lưu chuyến đi.</p>}
           {tripQuota && <div className="plan-usage"><span>Gói Free</span><strong>Còn {tripQuota.remaining} lượt tạo chuyến đi</strong></div>}
           {tripQuota && <p className="quota-note">Chuyến đi sẽ được lưu tự động. Lượt chỉ bị trừ nếu tạo và lưu thành công.</p>}
           {tripQuota?.remaining === 0 && <div className="plan-exhausted"><p>Bạn đã dùng hết lượt tạo mới. Chuyến đi đã lưu vẫn có thể xem và chỉnh sửa.</p><button type="button" onClick={onSeePlans}>Xem bảng giá <ArrowRight size={16} /></button></div>}
-          <button className="generate-button" onClick={onGenerate} disabled={generating || tripQuota?.remaining === 0} aria-busy={generating}>{generating ? <><RefreshCw className="spin" size={18} /> Đang tạo và lưu chuyến đi...</> : <><Compass size={19} /> Tạo và lưu chuyến đi <ArrowRight size={18} /></>}</button>
+          <button className="generate-button" onClick={onGenerate} disabled={generating || tripQuota?.remaining === 0} aria-busy={generating}>{generating ? <><RefreshCw className="spin" size={18} /> Đang tạo và lưu chuyến đi...</> : <><Compass size={19} /> {needsLogin ? 'Đăng nhập để tạo và lưu chuyến đi' : 'Tạo và lưu chuyến đi'} <ArrowRight size={18} /></>}</button>
           <p className="form-note"><WalletCards size={13} /> Đây là giá ước tính, chưa phải giá vé hay báo giá đặt chỗ.</p>
         </section>
       </div>

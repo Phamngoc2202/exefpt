@@ -66,6 +66,7 @@ Email của 20 tài khoản ngày 14/10 dùng kiểu tên người dùng thông 
 - Chi phí được cộng từ từng hoạt động, di chuyển, ăn uống, lưu trú và dự phòng 10%. Tạo chuyến đi sẽ tự lưu; sau đó có thể thêm, sửa, xóa hoạt động và chi phí rồi bấm **Lưu thay đổi**.
 - Khi có `GEMINI_API_KEY`, bước tạo chuyến đi gợi ý tên quán bằng Gemini. Tên quán chưa được xác minh và có liên kết tìm kiếm Google Maps để người dùng kiểm tra. Giá bữa ăn vẫn là dự toán theo phong cách, số người, không phải giá thực đơn.
 - Supabase Auth để đăng nhập/đăng ký; mỗi người chỉ xem và chỉnh các chuyến đi của mình nhờ RLS trong supabase/schema.sql.
+- Khách chưa đăng nhập có thể mở và điền trang **Lên kế hoạch**. Khi bấm tạo chuyến đi, ứng dụng yêu cầu đăng nhập; nội dung đã điền được giữ lại. Chuyến đi chỉ được tạo và lưu sau khi xác thực thành công.
 - Mở lại, sửa và xóa chuyến đã lưu. Chuyến cũ ở định dạng JSON trước đây vẫn đọc được.
 - Chuyến đã lưu có thể tạo liên kết công khai chỉ xem, chia sẻ qua ứng dụng, tắt liên kết và in hoặc lưu PDF trực tiếp từ trình duyệt.
 - Trang Quản trị cho phép admin tìm tài khoản và cấp/thu hồi vai trò admin. Quyền được kiểm tra bằng RLS trong Supabase, không dựa vào email ở frontend. Admin không được xem chuyến đi riêng của người khác; chính tài khoản admin không thể tự hạ quyền.
