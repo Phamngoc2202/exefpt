@@ -16,6 +16,12 @@
 
 Lệnh kiểm tra: npm test, npm run lint, npm run build.
 
+## Gợi ý quán ăn bằng Gemini
+
+Khi tạo chuyến đi mới, Gemini thường gợi ý tên quán. Đây là gợi ý **chưa xác minh**; liên kết Google Maps chỉ mở trang tìm kiếm để người dùng kiểm tra địa điểm và đánh giá. Không hiển thị điểm sao do AI tự đoán. Chuyến đi đã lưu còn bữa ăn chung có nút **Gợi ý quán bằng Gemini** để cập nhật mà không tốn thêm lượt tạo chuyến. Tính năng dùng `GEMINI_API_KEY`, không cần `GOOGLE_MAPS_API_KEY` hay Places API.
+
+Nếu đã bật thanh toán cho Gemini API, có thể đặt `GEMINI_MAPS_GROUNDING=true` ở máy chủ để thử tra nguồn Google Maps trước. Google Maps Grounding không có trong Free Tier của Gemini 3.8 Flash và 3.5 Flash-Lite; hạn mức miễn phí của công cụ này chỉ áp dụng trong Paid Tier. Khi tra nguồn không khả dụng, ứng dụng quay về gợi ý chưa xác minh bằng Gemini thường. Bản đồ tuyến trong web dùng OpenStreetMap.
+
 ## Kết nối SePay cho ba gói trả phí
 
 1. Chạy `supabase/payments.sql` trong Supabase SQL Editor. Script tạo bảng đơn hàng, bảng giao dịch và hàm xác nhận thanh toán. Khách hàng chỉ đọc được đơn của chính mình; chỉ máy chủ dùng khóa bí mật Supabase mới được xác nhận giao dịch.
@@ -48,6 +54,7 @@ Email của 20 tài khoản ngày 14/10 dùng kiểu tên người dùng thông 
 - Chuyến đi dài 1–5 ngày tùy điểm đến, từ 1–10 người.
 - Lịch trình sinh từ dữ liệu mẫu trong src/data/northernDestinations.js theo ngày, sở thích, số người và phong cách du lịch.
 - Chi phí được cộng từ từng hoạt động, di chuyển, ăn uống, lưu trú và dự phòng 10%. Tạo chuyến đi sẽ tự lưu; sau đó có thể thêm, sửa, xóa hoạt động và chi phí rồi bấm **Lưu thay đổi**.
+- Khi có `GEMINI_API_KEY`, bước tạo chuyến đi gợi ý tên quán bằng Gemini. Tên quán chưa được xác minh và có liên kết tìm kiếm Google Maps để người dùng kiểm tra. Giá bữa ăn vẫn là dự toán theo phong cách, số người, không phải giá thực đơn.
 - Supabase Auth để đăng nhập/đăng ký; mỗi người chỉ xem và chỉnh các chuyến đi của mình nhờ RLS trong supabase/schema.sql.
 - Mở lại, sửa và xóa chuyến đã lưu. Chuyến cũ ở định dạng JSON trước đây vẫn đọc được.
 - Chuyến đã lưu có thể tạo liên kết công khai chỉ xem, chia sẻ qua ứng dụng, tắt liên kết và in hoặc lưu PDF trực tiếp từ trình duyệt.

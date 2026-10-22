@@ -183,6 +183,12 @@
 
 .itinerary-page { background: #f7f7f2; padding-top: 0; }
 .itinerary-edit-hint { padding-top: 18px; color: #607b78; font-size: 13px; }
+.restaurant-suggestion-notice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 14px; padding: 15px 18px; border: 1px solid #c8e3dd; border-radius: 12px; background: #eff8f5; color: #164e4d; }
+.restaurant-suggestion-notice > div { display: grid; gap: 3px; }
+.restaurant-suggestion-notice strong { font-size: 13px; }
+.restaurant-suggestion-notice span { font-size: 12px; line-height: 1.5; }
+.restaurant-suggestion-notice button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: #087e83; color: white; font-size: 12px; font-weight: 800; cursor: pointer; }
+.restaurant-suggestion-notice button:disabled { opacity: .6; cursor: wait; }
 .trip-special-request { display: flex; align-items: flex-start; gap: 11px; margin-top: 12px; padding: 13px 15px; border: 1px solid #b9ddd7; border-radius: 11px; background: #edf8f5; color: #184f50; }
 .trip-special-request > span { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%; background: #d4f0e9; color: #087e83; }
 .trip-special-request > div { display: grid; gap: 3px; min-width: 0; }
@@ -227,6 +233,9 @@
 .weather-provider > span { white-space: nowrap; }
 .activity-source-link { display: inline-flex; width: fit-content; margin-top: 5px; color: #087e83; font-size: 10px; font-weight: 800; text-decoration: none; }
 .activity-source-link:hover { text-decoration: underline; }
+.activity-meal-estimate { margin-top: 6px; color: #5b716e; font-size: 11px; line-height: 1.5; }
+.google-maps-attribution { font-size: 12px; font-weight: 400; }
+.google-maps-attribution span { color: #5e5e5e; font-family: Roboto, Arial, sans-serif; font-size: 12px; font-weight: 400; white-space: nowrap; }
 .trip-weather-card.loading, .trip-weather-card.unavailable { grid-template-columns: auto 1fr; min-height: 76px; color: #5a7779; }
 .trip-map-card { overflow: hidden; border: 1px solid #dfeae8; border-radius: 3px; background: white; }
 .trip-map-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 17px 18px; }

@@ -39,7 +39,7 @@ function TripDocument({ plan, printable = false }) {
       <div>{day.activities.map((activity) => <article key={activity.id}>
         <time>{activity.time}</time>
         <span className="trip-document-dot" />
-        <div><strong>{activity.title}</strong><p>{activity.note}</p><small><MapPin size={11} /> {activity.location || day.destination || plan.form.destination}</small></div>
+        <div><strong>{activity.title}</strong>{activity.source === 'Google Maps' && activity.sourceUrl && <><a className="trip-document-source" href={activity.sourceUrl} target="_blank" rel="noreferrer"><span translate="no">Google Maps</span> · xem quán và đánh giá ↗</a></>}{activity.source === 'Gemini' && activity.sourceUrl && <a className="trip-document-source" href={activity.sourceUrl} target="_blank" rel="noreferrer"><span translate="no">Google Maps</span> · tìm quán (chưa xác minh) ↗</a>}{activity.note && <p>{activity.note}</p>}{activity.category === 'Ăn uống' && <small>Dự toán khoảng {money(Math.round(activity.cost / Math.max(1, Number(plan.form.travelers) || 1)))}/người · chưa xác minh giá thực đơn</small>}<small><MapPin size={11} /> {activity.location || day.destination || plan.form.destination}</small></div>
         <b>{money(activity.cost)}</b>
       </article>)}</div>
     </section>)}</div>

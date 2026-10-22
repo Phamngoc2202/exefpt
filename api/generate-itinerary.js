@@ -3,6 +3,7 @@ import { findDestination } from '../src/data/northernDestinations.js'
 import { countTripDays, findRequestedActivityTitles, generatePlan, toCreateSavedTripArgs, validateTripForm } from '../src/lib/tripPlanner.js'
 import { fetchWeatherForecast } from '../src/lib/weather.js'
 import { resolveRequestedPlaces } from '../src/lib/placeSearch.js'
+import { hasMissingRestaurants, suggestRestaurants } from '../src/lib/restaurantSuggestions.js'
 
 const DEFAULT_MODEL = 'gemini-3.8-flash'
 const DEFAULT_FALLBACK_MODEL = 'gemini-3.5-flash-lite'
@@ -74,6 +75,7 @@ function serverEnv(overrides = {}) {
     geminiApiKey: overrides.geminiApiKey || runtime.GEMINI_API_KEY,
     geminiModel: overrides.geminiModel || runtime.GEMINI_GENERATE_MODEL || runtime.GEMINI_MODEL || DEFAULT_MODEL,
     geminiFallbackModel: overrides.geminiFallbackModel || runtime.GEMINI_GENERATE_FALLBACK_MODEL || runtime.GEMINI_FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL,
+    useMapsGrounding: overrides.useMapsGrounding ?? runtime.GEMINI_MAPS_GROUNDING === 'true',
     supabaseUrl: overrides.supabaseUrl || runtime.VITE_SUPABASE_URL || runtime.SUPABASE_URL,
     supabaseKey: overrides.supabaseKey || runtime.VITE_SUPABASE_PUBLISHABLE_KEY || runtime.SUPABASE_PUBLISHABLE_KEY || runtime.SUPABASE_ANON_KEY,
   }
@@ -329,6 +331,9 @@ export function createGenerateItineraryHandler(overrides = {}) {
       } else {
         warning = 'Máy chủ chưa có GEMINI_API_KEY; đã dùng bộ tạo lịch trình dự phòng.'
       }
+
+      plan = await suggestRestaurants(plan, env)
+      if (hasMissingRestaurants(plan)) warning = [warning, 'Một số bữa ăn chưa có quán gợi ý vì Gemini chưa trả về tên phù hợp.'].filter(Boolean).join(' ')
 
       const { data: savedRow, error: createError } = await supabase
         .rpc('create_saved_trip', toCreateSavedTripArgs(plan)).single()

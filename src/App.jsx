@@ -208,6 +208,7 @@ export default function App() {
   const [toast, setToast] = useState('')
   const [generating, setGenerating] = useState(false)
   const [aiRefiningDay, setAiRefiningDay] = useState(null)
+  const [suggestingRestaurants, setSuggestingRestaurants] = useState(false)
   const generationInProgress = useRef(false)
   const isAdmin = Boolean(session?.user?.id && adminUserId === session.user.id)
 
@@ -387,7 +388,18 @@ export default function App() {
       const titles = day.activities.filter((activity) => activity.requestedDay === day.day).map((activity) => activity.title)
       if (titles.length) requestedActivitiesByDay[day.day] = titles
     })
-    setPlan({ ...generatePlan(plan.form, { additionalActivities, requestedActivitiesByDay }), id: plan.id, generationEventId: plan.generationEventId })
+    const regenerated = generatePlan(plan.form, { additionalActivities, requestedActivitiesByDay })
+    const existingMeals = new Map(plan.days.flatMap((day) => day.activities)
+      .filter((activity) => activity.category === 'Ăn uống' && activity.sourceUrl)
+      .map((activity) => [activity.id, activity]))
+    regenerated.days = regenerated.days.map((day) => ({
+      ...day,
+      activities: day.activities.map((activity) => {
+        const meal = existingMeals.get(activity.id)
+        return meal ? { ...activity, title: meal.title, location: meal.location, source: meal.source, sourceUrl: meal.sourceUrl, placeId: meal.placeId, note: meal.note } : activity
+      }),
+    }))
+    setPlan({ ...regenerated, id: plan.id, generationEventId: plan.generationEventId })
     setSaved(false)
     setToast('Đã tạo lại lịch trình. Hãy kiểm tra và lưu nếu muốn giữ bản mới.')
   }
@@ -395,6 +407,7 @@ export default function App() {
     setPlan((current) => ({ ...current, days: current.days.map((day) => day.day !== dayNumber ? day : {
       ...day, activities: day.activities.map((activity) => activity.id !== activityId ? activity : {
         ...activity, ...changes,
+        ...(activity.category === 'Ăn uống' && Object.hasOwn(changes, 'title') && changes.title !== activity.title ? { source: undefined, sourceUrl: undefined, placeId: undefined } : {}),
         ...(Object.hasOwn(changes, 'category') ? { type: activityTypeForCategory(changes.category) } : {}),
         ...(Object.hasOwn(changes, 'cost') ? { cost: Math.max(0, Number(changes.cost) || 0) } : {}),
       }),
@@ -468,6 +481,36 @@ export default function App() {
     setToast('Đã lưu lịch trình và chi phí vào Supabase!')
     return true
   }
+  const handleSuggestRestaurants = async () => {
+    if (!plan?.id || suggestingRestaurants) return
+    if (!saved && !(await handleSave())) return
+    setSuggestingRestaurants(true)
+    try {
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) { openRegistrationFor('itinerary'); return }
+      const response = await fetch('/api/suggest-restaurants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}` },
+        body: JSON.stringify({ tripId: plan.id }),
+      })
+      const payload = await response.json()
+      if (!response.ok || !payload.trip) {
+        setToast(payload.error || 'Chưa thể gợi ý quán lúc này.')
+        return
+      }
+      const updatedPlan = planFromRow(payload.trip)
+      setPlan(updatedPlan)
+      setTrips((current) => [updatedPlan, ...current.filter((trip) => trip.id !== updatedPlan.id)])
+      setSaved(true)
+      setToast(payload.hasMissingRestaurants
+        ? 'Đã thêm một số quán do Gemini gợi ý. Các bữa còn lại chưa có tên quán phù hợp.'
+        : 'Đã thêm gợi ý quán. Hãy kiểm tra địa điểm và đánh giá trên Google Maps trước khi đi.')
+    } catch {
+      setToast('Không thể kết nối Gemini để gợi ý quán lúc này.')
+    } finally {
+      setSuggestingRestaurants(false)
+    }
+  }
   const handleCreateShare = async () => {
     if (!plan?.id) throw new Error('Chuyến đi cần được lưu trước khi chia sẻ.')
     if (!saved) {
@@ -536,7 +579,7 @@ export default function App() {
       {page === 'destination' && <DestinationDetailPage city={selectedDestination} onBack={() => goTo('home')} onPlan={handlePlanDestination} />}
       {page === 'shared' && <SharedTripPage state={sharedTripState} onCreateOwn={() => goTo('create')} onBackHome={() => goTo('home')} />}
       {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} formError={formError} onBack={() => goTo('home')} generating={generating} tripQuota={tripQuota} onSeePlans={() => goTo('pricing')} />}
-      {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onAiRefineDay={handleAiRefineDay} aiRefiningDay={aiRefiningDay} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} onCreateShare={handleCreateShare} onRevokeShare={handleRevokeShare} />}
+      {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onAiRefineDay={handleAiRefineDay} aiRefiningDay={aiRefiningDay} onSuggestRestaurants={handleSuggestRestaurants} suggestingRestaurants={suggestingRestaurants} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} onCreateShare={handleCreateShare} onRevokeShare={handleRevokeShare} />}
       {page === 'trips' && <TripsPage trips={trips} goTo={goTo} onOpen={handleOpenTrip} onDelete={handleDeleteTrip} deletingId={deletingId} />}
       {page === 'pricing' && <PricingPage goTo={goTo} tripQuota={tripQuota} session={session} onLogin={openLogin} onPaymentSuccess={() => refreshTripQuota(session.user.id)} />}
       {page === 'admin' && (isAdmin ? <AdminPage currentUserId={session.user.id} /> : <main className="page-shell inner-page"><h1>Không có quyền truy cập</h1><p>Vui lòng đăng nhập bằng tài khoản quản trị.</p></main>)}

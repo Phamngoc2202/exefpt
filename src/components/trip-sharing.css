@@ -57,6 +57,8 @@
 .trip-document-dot { width: 8px; height: 8px; margin-top: 4px; border: 2px solid #75bdb6; border-radius: 50%; background: white; }
 .trip-document-day article > div { display: grid; gap: 4px; }
 .trip-document-day article > div > strong { font-size: 12px; }
+.trip-document-source { width: fit-content; color: #087e83; font-size: 12px; font-weight: 400; text-decoration: underline; }
+.trip-document-source span { color: #5e5e5e; font-family: Roboto, Arial, sans-serif; font-size: 12px; font-weight: 400; white-space: nowrap; }
 .trip-document-day article p { margin: 0; color: #6d8387; font-size: 9px; line-height: 1.5; }
 .trip-document-day article small { display: flex; align-items: center; gap: 4px; color: #92a3a5; font-size: 8px; }
 .trip-document-day article > b { color: #315d62; font-size: 10px; }

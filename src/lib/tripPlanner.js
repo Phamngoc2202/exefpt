@@ -212,7 +212,7 @@ export function generatePlan(form, options = {}) {
       }
     }
 
-    activities.push(createActivity(`${date}-lunch`, isFirst && !morningAvailable ? '14:15' : '12:00', 'Ăn trưa địa phương', 'Ăn uống', lunchCost, `Ước tính ${travelers} người.`, 'food'))
+    activities.push(createActivity(`${date}-lunch`, isFirst && !morningAvailable ? '14:15' : '12:00', 'Ăn trưa địa phương', 'Ăn uống', lunchCost, `Chưa có quán được xác minh; dự toán cho ${travelers} người theo mức ${form.style}.`, 'food'))
     const afternoon = pickAttraction(destination, form.interests, day, usedTitles, attractionBudget, travelers, preferredTitles, reservedForOtherDays)
     if (afternoon) {
       const cost = afternoon.costPerPerson * travelers
@@ -221,7 +221,7 @@ export function generatePlan(form, options = {}) {
     }
 
     if (!isLast) {
-      activities.push(createActivity(`${date}-dinner`, '18:00', 'Ăn tối địa phương', 'Ăn uống', dinnerCost, `Ước tính ${travelers} người.`, 'food'))
+      activities.push(createActivity(`${date}-dinner`, '18:00', 'Ăn tối địa phương', 'Ăn uống', dinnerCost, `Chưa có quán được xác minh; dự toán cho ${travelers} người theo mức ${form.style}.`, 'food'))
       if (lodgingCost > 0) {
         activities.push(createActivity(`${date}-hotel`, '20:00', 'Lưu trú qua đêm', 'Lưu trú', lodgingCost, `Ước tính ${rooms} phòng (2 người/phòng).`, 'hotel'))
       }
@@ -276,7 +276,8 @@ export function planFromRow(row) {
       return {
         ...activity,
         id: activity.id || `${row.id}-${index}-${activityIndex}`,
-        time: activity.time || '09:00', title: activity.title || 'Hoạt động', note: activity.note || '',
+        time: activity.time || '09:00', title: activity.title || 'Hoạt động',
+        note: activity.source === 'Gemini' && activity.note === 'Gemini gợi ý tên quán; địa điểm, giờ mở cửa và đánh giá chưa được xác minh. Hãy kiểm tra trên Google Maps trước khi đi. Giá bữa ăn là dự toán, chưa xác minh theo thực đơn.' ? '' : activity.note || '',
         cost: legacyCost(activity.cost), category,
         type: activityTypeForCategory(category, activity.type),
       }

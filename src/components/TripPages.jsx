@@ -14,6 +14,7 @@ import TransportProviders from './TransportProviders'
 import LodgingProviders from './LodgingProviders'
 import { PrintableTripDocument, TripShareDialog } from './TripSharing'
 import { COST_CATEGORIES, MAX_TRIP_DAYS, activityTypeForCategory, addDays, countTripDays, formatTripDate, summarizePlan } from '../lib/tripPlanner'
+import { hasMissingRestaurants } from '../lib/restaurantSuggestions'
 
 const interestOptions = ['Ẩm thực', 'Thiên nhiên', 'Văn hóa', 'Chụp ảnh', 'Biển', 'Mua sắm']
 const budgetRows = [
@@ -167,7 +168,7 @@ function ActivityEditor({ activity, onChange, onDone, onDelete }) {
   )
 }
 
-export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpdateActivity, onAddActivity, onDeleteActivity, onAiRefineDay, aiRefiningDay, onDelete, deleting, onCreateShare, onRevokeShare }) {
+export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpdateActivity, onAddActivity, onDeleteActivity, onAiRefineDay, aiRefiningDay, onSuggestRestaurants, suggestingRestaurants, onDelete, deleting, onCreateShare, onRevokeShare }) {
   const [activeDay, setActiveDay] = useState(1)
   const [editingId, setEditingId] = useState(null)
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
@@ -207,6 +208,7 @@ export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpd
       </div></section>
 
       <div className="page-shell itinerary-edit-hint" role="status">{saved ? 'Chuyến đi đã được lưu. Bạn có thể sửa hoặc thêm hoạt động bất cứ lúc nào.' : 'Bạn có thay đổi chưa lưu. Hãy bấm “Lưu thay đổi” để giữ lại.'}</div>
+      {hasMissingRestaurants(plan) && <div className="page-shell restaurant-suggestion-notice" role="status"><div><strong>Một số bữa ăn chưa có tên quán</strong><span>Gemini có thể gợi ý tên quán; hãy kiểm tra địa điểm và đánh giá trên Google Maps trước khi đi.</span></div><button type="button" onClick={onSuggestRestaurants} disabled={suggestingRestaurants || saving}>{suggestingRestaurants ? <><RefreshCw className="spin" size={16} /> Đang tìm quán...</> : <><Sparkles size={16} /> Gợi ý quán bằng Gemini</>}</button></div>}
       {plan.form.specialRequest?.trim() && <div className="page-shell"><div className="trip-special-request"><span><Sparkles size={17} /></span><div><small>Yêu cầu riêng của bạn</small><strong>{plan.form.specialRequest.trim()}</strong></div></div></div>}
       <div className="page-shell itinerary-layout">
         <div className="itinerary-main">
@@ -228,7 +230,7 @@ export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpd
                 return <div className="timeline-item" key={activity.id}>
                   <div className="time"><strong>{activity.time}</strong><small>Ước tính</small></div>
                   <span className={`activity-icon ${displayType}`}><Icon size={18} /></span>
-                  <div className="activity-copy"><h3>{activity.title}</h3><p>{activity.note}</p><span><MapPin size={13} /> {activity.location || dayDestination}, Việt Nam</span>{activity.sourceUrl && <a className="activity-source-link" href={activity.sourceUrl} target="_blank" rel="noreferrer">Đã xác minh trên {activity.source || 'bản đồ'} ↗</a>}
+                  <div className="activity-copy"><h3>{activity.title}</h3>{activity.source === 'Google Maps' && activity.sourceUrl && <><a className="activity-source-link google-maps-attribution" href={activity.sourceUrl} target="_blank" rel="noreferrer"><span translate="no">Google Maps</span> · {activity.title} · xem đánh giá ↗</a></>}{activity.note && <p>{activity.note}</p>}<span><MapPin size={13} /> {activity.location || dayDestination}, Việt Nam</span>{displayType === 'food' && <div className="activity-meal-estimate">Dự toán ≈ {formatMoney(Math.round(activity.cost / Math.max(1, Number(plan.form.travelers) || 1)))}/người × {plan.form.travelers} người · chưa xác minh giá thực đơn</div>}{activity.source === 'Gemini' && activity.sourceUrl && <a className="activity-source-link google-maps-attribution" href={activity.sourceUrl} target="_blank" rel="noreferrer"><span translate="no">Google Maps</span> · tìm quán (chưa xác minh) ↗</a>}{activity.sourceUrl && activity.source !== 'Google Maps' && activity.source !== 'Gemini' && <a className="activity-source-link" href={activity.sourceUrl} target="_blank" rel="noreferrer">Đã xác minh trên {activity.source || 'bản đồ'} ↗</a>}
                     {editingId === activity.id && <ActivityEditor activity={activity} onChange={(changes) => onUpdateActivity(dayData.day, activity.id, changes)} onDone={() => setEditingId(null)} onDelete={() => { onDeleteActivity(dayData.day, activity.id); setEditingId(null) }} />}
                   </div>
                   <div className="activity-cost"><strong>{activity.cost === 0 ? '0đ' : formatMoney(activity.cost)}</strong><button onClick={() => setEditingId(editingId === activity.id ? null : activity.id)} aria-label={`Chỉnh sửa ${activity.title}`}><Pencil size={15} /></button></div>
