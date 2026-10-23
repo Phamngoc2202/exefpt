@@ -533,6 +533,7 @@
 .form-error { margin: 0 0 12px; border-radius: 10px; padding: 10px 13px; background: #fff4e8; color: #a45c2e; font-size: 13px; font-weight: 700; }
 .demo-note { display: block; text-align: center; color: #9a9f9b; margin-top: 18px; }
 .auth-message { margin: -4px 0 0; border-radius: 9px; padding: 9px 11px; background: #fff4e8; color: #a45c2e; font-size: 12px; line-height: 1.45; }
+.auth-message.is-success { background: #e9f8f2; color: #166b58; }
 .login-success { text-align: center; padding-top: 32px; }
 .login-success > span { width: 58px; height: 58px; border-radius: 50%; margin: auto; background: #e8f5e7; color: var(--green); display: grid; place-items: center; }
 .login-success h2 { font-family: var(--font-sans); margin-bottom: 5px; }

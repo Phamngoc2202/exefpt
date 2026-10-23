@@ -4,12 +4,13 @@ import {
 
 const PAGE_SIZE = 20
 const FETCH_SIZE = 500
-const PURCHASE_FILTERS = new Set(['all', 'purchased', 'not_purchased', 'single_trip', 'plus', 'team'])
+const PURCHASE_FILTERS = new Set(['all', 'has_plan', 'purchased', 'not_purchased', 'single_trip', 'plus', 'team', 'demo'])
 const SORT_ORDERS = new Set(['newest', 'highest_spend'])
 
 function summarizeOrders(users, orders) {
   const summaries = Object.fromEntries(users.map(({ id }) => [id, {
     purchaseCount: 0, totalSpentVnd: 0, lastPaidAt: null, plans: {},
+    demoPurchaseCount: 0, demoAmountVnd: 0, demoPlans: {},
   }]))
 
   for (const order of orders) {
@@ -17,6 +18,17 @@ function summarizeOrders(users, orders) {
     if (!summary) continue
     const amount = Number(order.amount_vnd)
     if (!Number.isSafeInteger(amount) || amount < 0) throw new Error('invalid_payment_amount')
+    const isDemo = order.receiver_va === 'DEMO'
+    if (isDemo) {
+      summary.demoPurchaseCount += 1
+      summary.demoAmountVnd += amount
+      if (!Number.isSafeInteger(summary.demoAmountVnd)) throw new Error('payment_total_overflow')
+      const plan = summary.demoPlans[order.plan_key] || { purchaseCount: 0, amountVnd: 0 }
+      plan.purchaseCount += 1
+      plan.amountVnd += amount
+      summary.demoPlans[order.plan_key] = plan
+      continue
+    }
     summary.purchaseCount += 1
     summary.totalSpentVnd += amount
     if (!Number.isSafeInteger(summary.totalSpentVnd)) throw new Error('payment_total_overflow')
@@ -97,9 +109,10 @@ export function createAdminPaymentsHandler(overrides = {}) {
       const [users, orders] = await Promise.all([
         fetchAll(() => supabase.from('app_users')
           .select('id,email,role,generations_used,bonus_generations,created_at')
+          .not('email_confirmed_at', 'is', null)
           .order('created_at', { ascending: false }).order('id', { ascending: false })),
         fetchAll(() => supabase.from('payment_orders')
-          .select('id,user_id,plan_key,amount_vnd,paid_at')
+          .select('id,user_id,plan_key,amount_vnd,paid_at,receiver_va')
           .eq('status', 'paid').order('id', { ascending: true })),
       ])
       const summaries = summarizeOrders(users, orders)
@@ -107,9 +120,11 @@ export function createAdminPaymentsHandler(overrides = {}) {
       const matching = users.filter((user) => {
         if (emailSearch && !user.email?.toLocaleLowerCase().includes(emailSearch)) return false
         const payment = summaries[user.id]
+        if (purchaseFilter === 'has_plan') return payment.purchaseCount > 0 || payment.demoPurchaseCount > 0
         if (purchaseFilter === 'purchased') return payment.purchaseCount > 0
-        if (purchaseFilter === 'not_purchased') return payment.purchaseCount === 0
-        if (purchaseFilter !== 'all') return Boolean(payment.plans[purchaseFilter])
+        if (purchaseFilter === 'not_purchased') return payment.purchaseCount === 0 && payment.demoPurchaseCount === 0
+        if (purchaseFilter === 'demo') return payment.demoPurchaseCount > 0
+        if (purchaseFilter !== 'all') return Boolean(payment.plans[purchaseFilter] || payment.demoPlans[purchaseFilter])
         return true
       })
       if (sortOrder === 'highest_spend') {

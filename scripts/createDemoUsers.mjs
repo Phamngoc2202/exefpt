@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
-import { isHumanGmail, isShortGmail, isTeenGmail, randomHumanGmail, randomShortGmail, randomTeenGmail } from './demoEmailStyle.mjs'
+import { isHumanGmail, isShortGmail, isTeenGmail, isVariedGmail, randomHumanGmail, randomShortGmail, randomTeenGmail } from './demoEmailStyle.mjs'
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const args = process.argv.slice(2)
@@ -49,7 +49,7 @@ function validateManifest(manifest) {
   if (manifest.users?.length !== totalUsers) throw new Error(`Danh sách demo phải có đúng ${totalUsers} tài khoản.`)
   const emails = manifest.users.map((user) => user.email.toLowerCase())
   const names = manifest.users.map((user) => user.fullName)
-  if (new Set(emails).size !== totalUsers || new Set(names).size !== totalUsers || manifest.users.some((user) => !user.password || !user.email?.endsWith('@gmail.com') || !user.fullName || (historicalBatch && localDate(user.joinedAt) !== targetDate) || (batch.emailStyle === 'short' && !isShortGmail(user.email)) || (batch.emailStyle === 'teen' && !isTeenGmail(user.email)) || (batch.emailStyle === 'human' && !isHumanGmail(user.email)))) {
+  if (new Set(emails).size !== totalUsers || new Set(names).size !== totalUsers || manifest.users.some((user) => !user.password || !user.email?.endsWith('@gmail.com') || !user.fullName || (historicalBatch && localDate(user.joinedAt) !== targetDate) || (user.emailStyle === 'varied' ? !isVariedGmail(user.email) : (batch.emailStyle === 'short' && !isShortGmail(user.email)) || (batch.emailStyle === 'teen' && !isTeenGmail(user.email)) || (batch.emailStyle === 'human' && !isHumanGmail(user.email))))) {
     throw new Error('Danh sách demo có email trùng hoặc thông tin đăng nhập không hợp lệ.')
   }
 }

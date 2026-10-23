@@ -10,6 +10,7 @@ import { summarizeTripQuota } from './lib/tripQuota'
 import { passwordRecoveryCallback, supabase } from './lib/supabase'
 import { gmailSignupEmail } from './lib/signupEmail'
 import { signupFeedback } from './lib/signupFeedback'
+import { getSignupCleanupSettings } from './lib/signupCleanup'
 import { isCorrectMathCaptcha, pickMathCaptcha } from './lib/mathCaptcha'
 import { isPasswordRecoveryRedirect, passwordRecoveryRedirectUrl, urlWithoutPasswordRecovery } from './lib/passwordRecovery'
 import tripGenieLogo from './logo/tripgenie-mark.png'
@@ -165,6 +166,15 @@ function LoginModal({ onClose, initialMode = 'login', recoveryStatus, onRecovere
   const [done, setDone] = useState(false)
   const [captchaQuestion, setCaptchaQuestion] = useState(() => pickMathCaptcha())
   const [captchaAnswer, setCaptchaAnswer] = useState('')
+  const [signupCleanupSettings, setSignupCleanupSettings] = useState(null)
+  useEffect(() => {
+    if (mode !== 'register') return undefined
+    let active = true
+    getSignupCleanupSettings().then((settings) => {
+      if (active) setSignupCleanupSettings(settings)
+    }).catch(() => {})
+    return () => { active = false }
+  }, [mode])
   useEffect(() => { setMode(initialMode) }, [initialMode])
   useEffect(() => {
     if (initialMode === 'reset' && recoveryStatus === 'verified') setMode('reset')
@@ -192,9 +202,16 @@ function LoginModal({ onClose, initialMode = 'login', recoveryStatus, onRecovere
     const result = mode === 'login'
       ? await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
       : await supabase.auth.signUp({ email: normalizedEmail, password })
+    let currentCleanupSettings = signupCleanupSettings
+    if (mode === 'register' && !result.error) {
+      try {
+        currentCleanupSettings = await getSignupCleanupSettings()
+        setSignupCleanupSettings(currentCleanupSettings)
+      } catch { /* Registration still works when the optional settings cannot be read. */ }
+    }
     setLoading(false)
     if (mode === 'register') {
-      const feedback = signupFeedback(result)
+      const feedback = signupFeedback(result, currentCleanupSettings)
       if (feedback) {
         setMessage(feedback)
         return
@@ -249,7 +266,7 @@ function LoginModal({ onClose, initialMode = 'login', recoveryStatus, onRecovere
           <label>Mật khẩu<input type="password" minLength="6" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Tối thiểu 6 ký tự" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} /></label>
           {mode === 'login' && <button className="auth-secondary-link auth-forgot-link" type="button" onClick={() => { setMode('forgot'); setMessage('') }}>Quên mật khẩu?</button>}
           {mode === 'register' && <div className="signup-captcha"><div className="signup-captcha-heading"><strong>Xác nhận đăng ký</strong><button type="button" onClick={() => { changeCaptcha(); setMessage('') }} aria-label="Đổi câu hỏi toán"><RefreshCw size={14} /> Đổi câu</button></div><label className="signup-captcha-row"><span>Giải phép tính <strong className="signup-captcha-question" aria-live="polite">{captchaQuestion.question}</strong></span><input type="text" inputMode="numeric" pattern="[0-9]*" maxLength="3" value={captchaAnswer} onChange={(event) => { setCaptchaAnswer(event.target.value.replace(/\D/g, '')); if (message.startsWith('Đáp án chưa đúng')) setMessage('') }} placeholder="Đáp án" autoComplete="off" /></label></div>}
-          {message && <p className="auth-message" role="alert">{message}</p>}
+          {message && <p className={`auth-message${message.startsWith('Đã gửi email xác nhận') ? ' is-success' : ''}`} role={message.startsWith('Đã gửi email xác nhận') ? 'status' : 'alert'}>{message}</p>}
           <button className="primary-button" type="submit" disabled={loading}>{loading ? <><RefreshCw className="spin" size={17} /> Đang xử lý...</> : <>{mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'} <ArrowRight size={17} /></>}</button>
         </form>
       </>}

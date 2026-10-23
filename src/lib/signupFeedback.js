@@ -1,4 +1,9 @@
-export function signupFeedback({ data, error }) {
+function signupConfirmationDeadline(settings) {
+  if (!settings?.enabled || !Number.isInteger(settings.retention_minutes)) return ''
+  return `Liên kết xác nhận có hiệu lực khoảng ${settings.retention_minutes} phút kể từ khi đăng ký. Sau thời hạn đó, tài khoản chưa xác nhận sẽ tự xóa (tác vụ chạy mỗi phút); bạn cần đăng ký lại.`
+}
+
+export function signupFeedback({ data, error }, cleanupSettings) {
   const duplicateError = error?.code === 'user_already_exists'
     || /user already (registered|exists)/i.test(error?.message || '')
   const duplicateIdentity = Array.isArray(data?.user?.identities)
@@ -12,7 +17,7 @@ export function signupFeedback({ data, error }) {
 
   if (!data?.session) {
     if (Array.isArray(data?.user?.identities) && data.user.identities.length > 0) {
-      return 'Đã gửi email xác nhận đăng ký. Hãy kiểm tra Gmail của bạn.'
+      return `Đã gửi email xác nhận đăng ký. Hãy kiểm tra Gmail của bạn.${cleanupSettings?.enabled ? ` ${signupConfirmationDeadline(cleanupSettings)}` : ''}`
     }
     return 'Nếu Gmail chưa có tài khoản, hãy kiểm tra email để xác nhận. Nếu đã đăng ký, hãy đăng nhập.'
   }

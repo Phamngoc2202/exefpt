@@ -18,6 +18,7 @@ export default function DailySignupsChart({ refreshKey }) {
         for (let offset = 0; ; offset += FETCH_SIZE) {
           const { data, error } = await supabase.from('app_users')
             .select('id,created_at')
+            .not('email_confirmed_at', 'is', null)
             .gte('created_at', signupWindowStart(MAX_DAYS, now))
             .order('created_at', { ascending: true })
             .order('id', { ascending: true })
@@ -41,7 +42,7 @@ export default function DailySignupsChart({ refreshKey }) {
 
   return <section className="admin-analytics" aria-labelledby="admin-analytics-heading">
     <div className="admin-analytics-heading">
-      <div><span className="section-kicker">PHÂN TÍCH NGƯỜI DÙNG</span><h2 id="admin-analytics-heading">Tài khoản tham gia theo ngày</h2><p>Tính trên tài khoản hiện có, theo giờ Việt Nam.</p></div>
+      <div><span className="section-kicker">PHÂN TÍCH NGƯỜI DÙNG</span><h2 id="admin-analytics-heading">Tài khoản tham gia theo ngày</h2><p>Chỉ tính tài khoản đã xác nhận email, theo giờ Việt Nam.</p></div>
       <div className="admin-analytics-period" role="group" aria-label="Khoảng thời gian biểu đồ">
         {[7, 30].map((days) => <button type="button" key={days} aria-pressed={period === days} onClick={() => setPeriod(days)}>{days} ngày</button>)}
       </div>

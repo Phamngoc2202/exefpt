@@ -26,8 +26,18 @@ function handlerFor(role, users, orders, calls) {
         calls.push(table)
         if (table === 'app_users') return {
           select() { return this }, eq() { return this }, order() { return this },
+          not(field, operator, value) {
+            assert.equal(field, 'email_confirmed_at')
+            assert.equal(operator, 'is')
+            assert.equal(value, null)
+            this.confirmedOnly = true
+            return this
+          },
           async maybeSingle() { return { data: { role }, error: null } },
-          async range(from, to) { return { data: users.slice(from, to + 1), error: null } },
+          async range(from, to) {
+            const visible = this.confirmedOnly ? users.filter((user) => user.email_confirmed_at !== null) : users
+            return { data: visible.slice(from, to + 1), error: null }
+          },
         }
         return {
           select() { return this }, order() { return this },
@@ -51,6 +61,23 @@ test('non-admin cannot list account purchases or spending', async () => {
 
   assert.equal(reply.statusCode, 403)
   assert.deepEqual(calls, ['app_users'])
+})
+
+test('unconfirmed signups are absent from the account list and its total before pagination', async () => {
+  const pending = Array.from({ length: 21 }, (_, index) => ({
+    id: `pending-${index}`, email: `spam_user_${index}@gmail.com`, email_confirmed_at: null,
+    created_at: '2026-10-23T00:00:00Z',
+  }))
+  const confirmed = [
+    { id: buyerId, email: 'verified@gmail.com', email_confirmed_at: '2026-10-23T01:00:00Z', created_at: '2026-10-23T00:00:00Z' },
+    { id: otherId, email: 'another@gmail.com', email_confirmed_at: '2026-10-23T01:00:00Z', created_at: '2026-10-23T00:00:00Z' },
+  ]
+  const handler = handlerFor('admin', [...pending, ...confirmed], [], [])
+  const reply = response()
+  await handler({ method: 'POST', headers: { authorization: 'Bearer valid' }, body: filters }, reply)
+
+  assert.equal(reply.body.total, 2)
+  assert.deepEqual(reply.body.users.map((user) => user.id), [buyerId, otherId])
 })
 
 test('purchase filter applies across all users before pagination and sums all paid orders', async () => {
@@ -91,4 +118,38 @@ test('purchase filter applies across all users before pagination and sums all pa
   const topSpenders = response()
   await handler({ method: 'POST', headers: { authorization: 'Bearer valid' }, body: { ...filters, purchaseFilter: 'purchased', sortOrder: 'highest_spend' } }, topSpenders)
   assert.deepEqual(topSpenders.body.users.map((user) => user.id), [buyerId, otherId])
+})
+
+test('demo grants remain separate from SePay spending and real purchase filters', async () => {
+  const users = [
+    { id: buyerId, email: 'real@gmail.com', created_at: '2026-10-20T00:00:00Z' },
+    { id: otherId, email: 'sample@gmail.com', created_at: '2026-10-19T00:00:00Z' },
+    { id: 'plus-account', email: 'plus@gmail.com', created_at: '2026-10-18T00:00:00Z' },
+  ]
+  const orders = [
+    { user_id: buyerId, plan_key: 'single_trip', amount_vnd: 20_000, receiver_va: 'BANK-VA', paid_at: '2026-10-21T00:00:00Z' },
+    { user_id: otherId, plan_key: 'single_trip', amount_vnd: 20_000, receiver_va: 'DEMO', paid_at: '2026-10-22T00:00:00Z' },
+    { user_id: 'plus-account', plan_key: 'plus', amount_vnd: 99_000, receiver_va: 'DEMO', paid_at: '2026-10-22T00:00:00Z' },
+  ]
+  const handler = handlerFor('admin', users, orders, [])
+
+  const samples = response()
+  await handler({ method: 'POST', headers: { authorization: 'Bearer valid' }, body: { ...filters, purchaseFilter: 'demo' } }, samples)
+  assert.equal(samples.body.total, 2)
+  assert.deepEqual(samples.body.users.map((user) => user.id), [otherId, 'plus-account'])
+  assert.equal(samples.body.summaries[otherId].totalSpentVnd, 0)
+  assert.equal(samples.body.summaries[otherId].demoAmountVnd, 20_000)
+  assert.equal(samples.body.summaries[otherId].demoPurchaseCount, 1)
+  assert.equal(samples.body.summaries['plus-account'].totalSpentVnd, 0)
+  assert.equal(samples.body.summaries['plus-account'].demoAmountVnd, 99_000)
+  assert.equal(samples.body.summaries['plus-account'].demoPlans.plus.purchaseCount, 1)
+
+  const allPlans = response()
+  await handler({ method: 'POST', headers: { authorization: 'Bearer valid' }, body: { ...filters, purchaseFilter: 'has_plan' } }, allPlans)
+  assert.equal(allPlans.body.total, 3)
+
+  const realPurchases = response()
+  await handler({ method: 'POST', headers: { authorization: 'Bearer valid' }, body: { ...filters, purchaseFilter: 'purchased' } }, realPurchases)
+  assert.deepEqual(realPurchases.body.users.map((user) => user.id), [buyerId])
+  assert.equal(realPurchases.body.summaries[buyerId].totalSpentVnd, 20_000)
 })

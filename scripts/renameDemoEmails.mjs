@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
-import { isHumanGmail, isTeenGmail, randomHumanGmail, randomTeenGmail } from './demoEmailStyle.mjs'
+import { isHumanGmail, isTeenGmail, isVariedGmail, randomHumanGmail, randomTeenGmail } from './demoEmailStyle.mjs'
 
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const args = process.argv.slice(2)
@@ -54,7 +54,7 @@ async function loadAndPrepare() {
       do { candidate = batch.generate(user.fullName) } while (reserved.has(gmailIdentity(candidate)))
       user.desiredEmail = candidate
     }
-    if (!batch.validate(user.desiredEmail)) throw new Error(`Email mới không hợp lệ cho ${user.fullName}.`)
+    if (!(user.emailStyle === 'varied' ? isVariedGmail(user.desiredEmail) : batch.validate(user.desiredEmail))) throw new Error(`Email mới không hợp lệ cho ${user.fullName}.`)
     reserved.add(gmailIdentity(user.desiredEmail))
   }
   if (new Set(manifest.users.map((user) => gmailIdentity(user.desiredEmail))).size !== batch.count) {
@@ -129,7 +129,7 @@ async function main() {
       if (syncError) throw new Error(`Không đồng bộ được email hồ sơ của ${user.fullName}: ${syncError.message}`)
     }
     user.email = user.desiredEmail
-    user.emailStyle = batch.style
+    if (user.emailStyle !== 'varied') user.emailStyle = batch.style
     await save(manifest)
     if ((index + 1) % 5 === 0 || index + 1 === manifest.users.length) console.log(`Đã xử lý ${index + 1}/${batch.count} · đổi mới ${renamed}`)
     await sleep(150)

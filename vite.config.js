@@ -7,6 +7,7 @@ import accommodationsHandler from './api/accommodations.js'
 import dayRouteHandler from './api/day-route.js'
 import { createPaymentOrdersHandler } from './api/payment-orders.js'
 import { createSePayWebhookHandler } from './api/sepay-webhook.js'
+import { createAdminPaymentsHandler } from './api/admin-payments.js'
 
 function localApis(env) {
   const generateItineraryHandler = createGenerateItineraryHandler({
@@ -41,6 +42,7 @@ function localApis(env) {
       server.middlewares.use('/api/accommodations', accommodationsHandler)
       server.middlewares.use('/api/day-route', dayRouteHandler)
       server.middlewares.use('/api/payment-orders', createPaymentOrdersHandler(paymentEnv))
+      server.middlewares.use('/api/admin-payments', createAdminPaymentsHandler(paymentEnv))
       server.middlewares.use('/api/sepay-webhook', createSePayWebhookHandler(paymentEnv))
     },
   }

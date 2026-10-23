@@ -18,6 +18,13 @@ test('hướng dẫn xác nhận Gmail khi Supabase tạo tài khoản mới', (
   assert.match(signupFeedback({ data: { user: { identities: [{}] }, session: null }, error: null }), /Đã gửi email xác nhận/)
 })
 
+test('chỉ hiện thời hạn xác nhận cho đăng ký mới khi tự dọn đang bật', () => {
+  const result = { data: { user: { identities: [{}] }, session: null }, error: null }
+  assert.match(signupFeedback(result, { enabled: true, retention_minutes: 5 }), /Liên kết xác nhận có hiệu lực khoảng 5 phút/)
+  assert.doesNotMatch(signupFeedback(result, { enabled: false, retention_minutes: 5 }), /5 phút/)
+  assert.doesNotMatch(signupFeedback({ data: { user: { identities: [] }, session: null }, error: null }, { enabled: true, retention_minutes: 5 }), /5 phút/)
+})
+
 test('giữ thông báo lỗi khác và cho phép đăng ký có phiên đăng nhập', () => {
   assert.equal(signupFeedback({ data: null, error: { message: 'Password too short' } }), 'Password too short')
   assert.equal(signupFeedback({ data: { user: { identities: [{}] }, session: {} }, error: null }), null)

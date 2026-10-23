@@ -44,3 +44,10 @@ export function isHumanGmail(email) {
   return !extra && domain === 'gmail.com' && local.length >= 6 && local.length <= 30
     && /^[a-z0-9]+(?:\.[a-z0-9]+)*\d{6}$/.test(local) && !local.includes('tripgenie')
 }
+
+export function isVariedGmail(email) {
+  if (typeof email !== 'string') return false
+  const [local, domain, extra] = email.toLowerCase().split('@')
+  return !extra && domain === 'gmail.com' && local.length >= 6 && local.length <= 30
+    && /^[a-z0-9]+(?:\.[a-z0-9]+)*$/.test(local)
+}

@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
-import { isHumanGmail, randomHumanGmail } from './demoEmailStyle.mjs'
+import { isHumanGmail, isVariedGmail, randomHumanGmail } from './demoEmailStyle.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const planPath = resolve(root, '.local', 'demo-users-2026-10-02-to-11.json')
@@ -57,7 +57,7 @@ async function loadPlan() {
 }
 
 function validateDay(day, manifest) {
-  if (manifest.date !== day.date || manifest.users?.length !== day.count || manifest.users.some((user) => !user.fullName || !user.password || !isHumanGmail(user.email) || vietnamDate(user.joinedAt) !== day.date)) {
+  if (manifest.date !== day.date || manifest.users?.length !== day.count || manifest.users.some((user) => !user.fullName || !user.password || !(user.emailStyle === 'varied' ? isVariedGmail(user.email) : isHumanGmail(user.email)) || vietnamDate(user.joinedAt) !== day.date)) {
     throw new Error(`Danh sách tài khoản ngày ${day.date} không hợp lệ.`)
   }
 }

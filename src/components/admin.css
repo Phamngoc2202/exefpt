@@ -18,6 +18,15 @@
 .admin-payment-switch[aria-checked="false"] > span { background: #aabcb6; }
 .admin-payment-switch[aria-checked="false"] > span::after { right: auto; left: 3px; }
 .admin-payment-switch:disabled { opacity: .6; cursor: not-allowed; }
+.admin-signup-cleanup { align-items: flex-start; }
+.admin-signup-cleanup-actions { display: flex; align-items: end; gap: 14px; flex: none; }
+.admin-signup-cleanup-actions form { display: grid; gap: 6px; }
+.admin-signup-cleanup-actions label { color: #607d7e; font-size: 11px; font-weight: 800; }
+.admin-signup-cleanup-actions form > div { display: flex; gap: 6px; }
+.admin-signup-cleanup-actions input { width: 77px; min-height: 38px; padding: 7px 9px; border: 1px solid #d4e5e3; border-radius: 9px; color: #123942; font: inherit; }
+.admin-signup-cleanup-actions form button { padding: 8px 13px; border: 0; border-radius: 9px; background: #0b6971; color: white; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.admin-signup-cleanup-actions form button:disabled { opacity: .5; cursor: not-allowed; }
+.admin-payment-settings-copy .admin-cleanup-saved { display: block; margin-top: 8px; color: #167352; font-size: 12px; }
 .admin-analytics { margin-bottom: 22px; padding: 27px 29px 25px; border: 1px solid #dceae9; border-radius: 18px; background: white; box-shadow: 0 14px 35px rgba(18, 67, 76, .05); }
 .admin-analytics-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .admin-analytics-heading h2 { margin: 9px 0 5px; color: #103942; font-family: var(--font-sans); font-size: clamp(22px, 2.8vw, 29px); letter-spacing: -.035em; }
@@ -80,6 +89,10 @@
 .admin-purchases > div span { padding: 4px 7px; border-radius: 7px; background: #e9f6f2; color: #1c6760; font-size: 11px; font-weight: 700; white-space: nowrap; }
 .admin-purchases small, .admin-no-purchases { color: #789094; font-size: 11px; font-weight: 500; }
 .admin-table td.admin-spent { color: #0b6971; white-space: nowrap; }
+.admin-demo-purchases { margin-top: 8px; }
+.admin-demo-purchases > strong { color: #9b5d18; }
+.admin-demo-purchases > div span { background: #fff0d8; color: #8b541a; }
+.admin-spent small { display: block; margin-top: 4px; color: #9b5d18; font-size: 11px; font-weight: 700; }
 .admin-table select { min-width: 143px; padding: 9px 12px; border: 1px solid #d4e5e3; border-radius: 9px; background: white; color: #12414a; font: inherit; font-weight: 700; cursor: pointer; }
 .admin-table select:disabled { opacity: .64; cursor: not-allowed; }
 .admin-credit-cell { display: grid; gap: 5px; justify-items: start; }
@@ -99,6 +112,8 @@
   .admin-payment-settings { flex-wrap: wrap; padding: 18px 16px; }
   .admin-payment-settings-copy { flex-basis: calc(100% - 66px); }
   .admin-payment-switch { margin-left: 66px; }
+  .admin-signup-cleanup-actions { width: 100%; margin-left: 66px; flex-wrap: wrap; align-items: end; }
+  .admin-signup-cleanup-actions .admin-payment-switch { margin-left: 0; }
   .admin-analytics { padding: 20px 16px; }
   .admin-analytics-heading { flex-direction: column; gap: 14px; }
   .admin-analytics-summary { gap: 7px; }

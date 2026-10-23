@@ -4,9 +4,13 @@
 create table if not exists public.app_users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
+  email_confirmed_at timestamptz,
   role text not null default 'user' check (role in ('user', 'admin')),
   created_at timestamptz not null default now()
 );
+
+alter table public.app_users
+  add column if not exists email_confirmed_at timestamptz;
 
 alter table public.app_users enable row level security;
 
@@ -61,9 +65,11 @@ security definer
 set search_path = ''
 as $$
 begin
-  insert into public.app_users (id, email, created_at)
-  values (new.id, new.email, new.created_at)
-  on conflict (id) do update set email = excluded.email;
+  insert into public.app_users (id, email, email_confirmed_at, created_at)
+  values (new.id, new.email, new.email_confirmed_at, new.created_at)
+  on conflict (id) do update
+  set email = excluded.email,
+      email_confirmed_at = excluded.email_confirmed_at;
   return new;
 end;
 $$;
@@ -72,13 +78,15 @@ revoke all on function tripgenie_private.sync_app_user() from public, anon, auth
 
 drop trigger if exists on_auth_user_sync_app_user on auth.users;
 create trigger on_auth_user_sync_app_user
-after insert or update of email on auth.users
+after insert or update of email, email_confirmed_at on auth.users
 for each row execute function tripgenie_private.sync_app_user();
 
 -- Include accounts that registered before this script was installed.
-insert into public.app_users (id, email, created_at)
-select id, email, created_at from auth.users
-on conflict (id) do update set email = excluded.email;
+insert into public.app_users (id, email, email_confirmed_at, created_at)
+select id, email, email_confirmed_at, created_at from auth.users
+on conflict (id) do update
+set email = excluded.email,
+    email_confirmed_at = excluded.email_confirmed_at;
 
 -- Bootstrap the existing, email-confirmed owner by immutable user ID.
 -- Re-running this script will keep that owner as admin.

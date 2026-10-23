@@ -10,6 +10,8 @@
     "test": "node --experimental-test-isolation=none --test",
     "seed:demo-users": "node --env-file=.env.local scripts/createDemoUsers.mjs",
     "seed:early-demo-users": "node --env-file=.env.local scripts/createEarlierDemoUsers.mjs",
+    "seed:demo-single-trips": "node --env-file=.env.local scripts/seedDemoSingleTrips.mjs",
+    "seed:demo-plus": "node --env-file=.env.local scripts/seedDemoSingleTrips.mjs --plan=plus",
     "rename:demo-emails": "node --env-file=.env.local scripts/renameDemoEmails.mjs",
     "preview": "vite preview"
   },
