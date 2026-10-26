@@ -39,6 +39,10 @@
 .admin-analytics-summary span { color: #6c8588; font-size: 12px; font-weight: 700; }
 .admin-analytics-summary strong { color: #0b6971; font-family: var(--font-sans); font-size: 29px; line-height: 1.1; }
 .admin-analytics-summary small { color: #849a9b; font-size: 11px; }
+.admin-usage-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.admin-usage-summary strong { font-size: clamp(20px, 2.3vw, 28px); }
+.admin-usage-chart .admin-chart-column { background: linear-gradient(180deg, #79cfc0, #16766f); }
+.admin-usage-chart-note { margin: 7px 0 0; color: #789093; font-size: 11px; text-align: right; }
 .admin-analytics-message { display: grid; place-items: center; min-height: 230px; margin: 18px 0 0; color: #6b8589; font-size: 13px; text-align: center; }
 .admin-analytics-message[role="alert"] { color: #a54d30; }
 .admin-chart-scroll { overflow-x: auto; padding-bottom: 8px; }
@@ -74,7 +78,7 @@
 .admin-feedback.error { background: #fff1eb; color: #a54d30; }
 .admin-feedback.success { background: #e9f8f2; color: #167352; }
 .admin-table-scroll { overflow-x: auto; }
-.admin-table { width: 100%; min-width: 1180px; border-collapse: collapse; text-align: left; }
+.admin-table { width: 100%; min-width: 1380px; border-collapse: collapse; text-align: left; }
 .admin-table th { padding: 13px 25px; border-block: 1px solid #e8f0ef; background: #f8fbfa; color: #70868a; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
 .admin-table td { padding: 15px 25px; border-bottom: 1px solid #eef3f2; color: #536e73; font-size: 13px; }
 .admin-table tr:last-child td { border-bottom: 0; }
@@ -93,6 +97,10 @@
 .admin-demo-purchases > strong { color: #9b5d18; }
 .admin-demo-purchases > div span { background: #fff0d8; color: #8b541a; }
 .admin-spent small { display: block; margin-top: 4px; color: #9b5d18; font-size: 11px; font-weight: 700; }
+.admin-usage-cell { display: grid; gap: 4px; min-width: 155px; }
+.admin-usage-cell strong { color: #0b6971; font-size: 14px; }
+.admin-usage-cell span { color: #59787a; font-size: 11px; font-weight: 700; }
+.admin-usage-cell small { color: #84999b; font-size: 10px; }
 .admin-table select { min-width: 143px; padding: 9px 12px; border: 1px solid #d4e5e3; border-radius: 9px; background: white; color: #12414a; font: inherit; font-weight: 700; cursor: pointer; }
 .admin-table select:disabled { opacity: .64; cursor: not-allowed; }
 .admin-credit-cell { display: grid; gap: 5px; justify-items: start; }
@@ -117,6 +125,7 @@
   .admin-analytics { padding: 20px 16px; }
   .admin-analytics-heading { flex-direction: column; gap: 14px; }
   .admin-analytics-summary { gap: 7px; }
+  .admin-usage-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .admin-analytics-summary > div { padding: 12px 9px; }
   .admin-analytics-summary strong { font-size: 24px; }
   .admin-role-guide { grid-template-columns: 1fr; }

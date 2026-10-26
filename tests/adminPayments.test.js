@@ -15,7 +15,7 @@ function response() {
   }
 }
 
-function handlerFor(role, users, orders, calls) {
+function handlerFor(role, users, orders, calls, usageTotals = [], usageDaily = []) {
   return createAdminPaymentsHandler({
     supabaseUrl: 'https://example.supabase.co',
     publishableKey: 'publishable',
@@ -39,7 +39,7 @@ function handlerFor(role, users, orders, calls) {
             return { data: visible.slice(from, to + 1), error: null }
           },
         }
-        return {
+        if (table === 'payment_orders') return {
           select() { return this }, order() { return this },
           eq(field, value) {
             assert.equal(field, 'status')
@@ -48,6 +48,15 @@ function handlerFor(role, users, orders, calls) {
           },
           async range(from, to) { return { data: orders.slice(from, to + 1), error: null } },
         }
+        if (table === 'user_usage_totals') return {
+          select() { return this }, order() { return this },
+          async range(from, to) { return { data: usageTotals.slice(from, to + 1), error: null } },
+        }
+        if (table === 'user_usage_daily') return {
+          select() { return this }, order() { return this }, gte() { return this },
+          async range(from, to) { return { data: usageDaily.slice(from, to + 1), error: null } },
+        }
+        throw new Error(`Unexpected table: ${table}`)
       },
     }),
   })
@@ -152,4 +161,33 @@ test('demo grants remain separate from SePay spending and real purchase filters'
   await handler({ method: 'POST', headers: { authorization: 'Bearer valid' }, body: { ...filters, purchaseFilter: 'purchased' } }, realPurchases)
   assert.deepEqual(realPurchases.body.users.map((user) => user.id), [buyerId])
   assert.equal(realPurchases.body.summaries[buyerId].totalSpentVnd, 20_000)
+})
+
+test('usage summaries include total, recent activity and most-active sorting', async () => {
+  const users = [
+    { id: buyerId, email: 'active@gmail.com', email_confirmed_at: '2026-10-20T00:00:00Z', created_at: '2026-10-20T00:00:00Z' },
+    { id: otherId, email: 'quiet@gmail.com', email_confirmed_at: '2026-10-20T00:00:00Z', created_at: '2026-10-19T00:00:00Z' },
+  ]
+  const todayParts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date()).map(({ type, value }) => [type, value]))
+  const today = `${todayParts.year}-${todayParts.month}-${todayParts.day}`
+  const totals = [
+    { user_id: buyerId, total_active_seconds: 3600, total_sessions: 2, last_active_at: '2026-10-24T10:00:00Z' },
+    { user_id: otherId, total_active_seconds: 300, total_sessions: 1, last_active_at: '2026-10-24T09:00:00Z' },
+  ]
+  const daily = [
+    { user_id: buyerId, activity_date: today, active_seconds: 600, last_active_at: '2026-10-24T10:00:00Z' },
+    { user_id: otherId, activity_date: today, active_seconds: 60, last_active_at: '2026-10-24T09:00:00Z' },
+  ]
+  const handler = handlerFor('admin', users, [], [], totals, daily)
+  const reply = response()
+  await handler({ method: 'POST', headers: { authorization: 'Bearer valid' }, body: { ...filters, sortOrder: 'most_active' } }, reply)
+
+  assert.deepEqual(reply.body.users.map((user) => user.id), [buyerId, otherId])
+  assert.equal(reply.body.usageSummaries[buyerId].totalSeconds, 3600)
+  assert.equal(reply.body.usageSummaries[buyerId].todaySeconds, 600)
+  assert.equal(reply.body.usageAnalytics.todaySeconds, 660)
+  assert.equal(reply.body.usageAnalytics.todayUsers, 2)
+  assert.equal(reply.body.usageAnalytics.totalSessions, 3)
 })

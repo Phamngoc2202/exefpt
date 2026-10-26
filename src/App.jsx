@@ -4,6 +4,7 @@ import './App.css'
 import './home.css'
 import './travel-polish.css'
 import HomePage from './components/home/HomePage'
+import UsageTracker from './components/UsageTracker'
 import { activityTypeForCategory, createDefaultForm, generatePlan, planFromRow, toTripPayload, validateTripForm } from './lib/tripPlanner'
 import { buildTripShareUrl, shareTokenFromSearch } from './lib/tripSharing'
 import { summarizeTripQuota } from './lib/tripQuota'
@@ -725,6 +726,7 @@ export default function App() {
   const updateSessionUser = (user) => setSession((current) => current ? { ...current, user } : current)
 
   return <div className="app">
+    <UsageTracker userId={session?.user?.id} />
     <Header page={page} goTo={goTo} onLogin={openLogin} onAccount={() => setAccountOpen(true)} session={session} isAdmin={isAdmin} />
     <Suspense fallback={<main className="page-shell inner-page">Đang mở trang...</main>}>
       {page === 'home' && <HomePage goTo={goTo} form={form} setForm={updateForm} onExplore={(city) => goTo('destination', city)} />}
