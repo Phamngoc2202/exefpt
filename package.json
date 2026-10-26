@@ -12,6 +12,7 @@
     "seed:early-demo-users": "node --env-file=.env.local scripts/createEarlierDemoUsers.mjs",
     "seed:demo-single-trips": "node --env-file=.env.local scripts/seedDemoSingleTrips.mjs",
     "seed:demo-plus": "node --env-file=.env.local scripts/seedDemoSingleTrips.mjs --plan=plus",
+    "seed:demo-usage": "node --env-file=.env.local scripts/seedDemoUsage.mjs",
     "rename:demo-emails": "node --env-file=.env.local scripts/renameDemoEmails.mjs",
     "preview": "vite preview"
   },
