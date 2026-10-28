@@ -21,7 +21,8 @@ const packages = [
     features: [
       ['1 lượt tạo lịch trình bằng AI', true],
       ['Dự toán chi phí chi tiết', true],
-      ['Giới hạn 1 chuyến lưu theo gói', false],
+      ['Tự động lưu chuyến đi đã tạo', true],
+      ['Chia sẻ và In / Lưu PDF', true],
     ],
   },
   {
@@ -29,9 +30,9 @@ const packages = [
     price: '99.000đ', period: 'Thanh toán một lần',
     features: [
       ['20 lượt tạo lịch trình bằng AI', true],
-      ['Giới hạn 10 chuyến lưu theo gói', false],
-      ['5 lượt phương án dự phòng thông minh', false],
-      ['3 lượt xuất PDF theo gói', false],
+      ['Lưu và quản lý các chuyến đã tạo', true],
+      ['AI chỉnh sửa từng ngày theo yêu cầu', true],
+      ['Chia sẻ và In / Lưu PDF', true],
     ],
   },
   {
@@ -39,9 +40,9 @@ const packages = [
     price: '349.000đ', period: 'Theo sự kiện / dự án nhóm',
     features: [
       ['50 lượt tạo lịch trình bằng AI', true],
-      ['Giới hạn 20 chuyến lưu theo gói', false],
-      ['Lên kế hoạch nhóm cho 15–50 người', false],
-      ['Xuất PDF dành cho nhóm', false],
+      ['Lưu và quản lý kế hoạch nhóm', true],
+      ['Dự toán ngân sách chi tiết cho cả nhóm', true],
+      ['Chia sẻ và In / Lưu PDF', true],
     ],
   },
 ]
@@ -215,14 +216,14 @@ export default function PricingPage({ goTo, tripQuota, session, onLogin, onPayme
           <div className="pricing-card-main">
             <span className="pricing-tier">{item.name} <span>· {item.category}</span></span>
             <div className="pricing-price"><strong>{item.price}</strong><span>{item.period}</span></div>
-            <ul>{item.features.map(([feature, active]) => <li className={active ? '' : 'pricing-feature-future'} key={feature}>{feature}{!active && <small>Đang phát triển</small>}</li>)}</ul>
+            <ul>{item.features.map(([feature]) => <li key={feature}>{feature}</li>)}</ul>
           </div>
           {item.planKey
             ? <button type="button" className="pricing-start" disabled={busy || paymentEnabled !== true} onClick={() => startCheckout(item.planKey)}>{paymentEnabled === null ? 'Đang kiểm tra thanh toán…' : paymentEnabled === false ? 'Tạm tắt thanh toán' : busy ? 'Vui lòng chờ…' : 'Thanh toán qua SePay'} {paymentEnabled === true && <ArrowRight size={17} />}</button>
             : <button type="button" className="pricing-start" onClick={() => goTo('create')}>Bắt đầu miễn phí <ArrowRight size={17} /></button>}
         </article>)}
       </div>
-      <p className="pricing-note">Sau khi thanh toán thành công, hệ thống tự cộng số lượt tạo lịch trình ghi trên từng gói. Các tính năng được đánh dấu “Đang phát triển” chưa được kích hoạt.</p>
+      <p className="pricing-note">Sau khi thanh toán thành công, hệ thống tự cộng số lượt tạo lịch trình ghi trên từng gói. Các quyền lợi hiển thị trên từng gói hiện đã sẵn sàng sử dụng.</p>
     </div>
     {checkoutOpen && order && createPortal(
       <Checkout order={order} busy={busy} copied={copied} pollError={pollError} onCopy={copy} onClose={() => setCheckoutOpen(false)} onRetry={startCheckout} />,
