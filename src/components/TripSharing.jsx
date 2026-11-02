@@ -34,6 +34,11 @@ function TripDocument({ plan, printable = false }) {
       <div className="trip-document-budget-grid">{categories.map(([category, value]) => <span key={category}><small>{category}</small><strong>{money(value)}</strong></span>)}<span><small>Dự phòng</small><strong>{money(summary.reserve)}</strong></span></div>
     </section>
 
+    {plan.checklist?.length > 0 && <section className="trip-document-checklist">
+      <header><strong>Checklist trước chuyến đi</strong><small>{plan.checklist.filter((item) => item.done).length}/{plan.checklist.length} mục hoàn thành</small></header>
+      <ul>{plan.checklist.map((item) => <li key={item.id}><span>{item.done ? '✓' : '○'}</span><span>{item.title}</span></li>)}</ul>
+    </section>}
+
     <div className="trip-document-days">{plan.days.map((day) => <section className="trip-document-day" key={day.date}>
       <header><span>Ngày {day.day}</span><div><h2>{day.destination || day.city || plan.form.destination}</h2><p>{formatTripDate(day.date)} · {day.label}</p></div></header>
       <div>{day.activities.map((activity) => <article key={activity.id}>

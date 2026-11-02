@@ -183,6 +183,28 @@
 
 .itinerary-page { background: #f7f7f2; padding-top: 0; }
 .itinerary-edit-hint { padding-top: 18px; color: #607b78; font-size: 13px; }
+.trip-checklist { margin: 18px 0 24px; padding: 22px 24px; border: 1px solid #dcebea; border-radius: 18px; background: #fff; box-shadow: 0 10px 28px rgba(13,77,83,.045); }
+.trip-checklist-heading { display: flex; align-items: center; gap: 12px; }
+.trip-checklist-icon { display: grid; place-items: center; width: 42px; height: 42px; flex: none; border-radius: 13px; background: #e8f5f1; color: #087e83; }
+.trip-checklist-heading h2 { margin: 0 0 4px; color: #173f48; font: 800 18px/1.25 var(--font-sans); letter-spacing: -.02em; }
+.trip-checklist-heading p { margin: 0; color: #73898b; font-size: 12px; }
+.trip-checklist-progress-label { margin-left: auto; color: #087e83; font-size: 15px; font-weight: 900; }
+.trip-checklist-progress { height: 7px; overflow: hidden; margin: 17px 0 18px; border-radius: 99px; background: #edf3f1; }
+.trip-checklist-progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #71c4b2, #0b7a7d); transition: width .2s ease; }
+.trip-checklist-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 26px; }
+.trip-checklist-group h3 { margin: 0 0 8px; color: #41676a; font-size: 11px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.trip-checklist-group ul { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.trip-checklist-group li { display: flex; align-items: flex-start; gap: 8px; min-height: 32px; }
+.trip-checklist-group li label { display: flex; align-items: flex-start; gap: 9px; flex: 1; padding: 5px 0; color: #294c50; font-size: 12px; line-height: 1.45; cursor: pointer; }
+.trip-checklist-group input { width: 16px; height: 16px; flex: none; margin: 0; accent-color: #087e83; cursor: pointer; }
+.trip-checklist-group li.is-done label span { color: #8b9b99; text-decoration: line-through; }
+.trip-checklist-group li > button { display: grid; place-items: center; width: 27px; height: 27px; border: 0; border-radius: 7px; background: transparent; color: #879b99; cursor: pointer; }
+.trip-checklist-group li > button:hover { background: #fff0ec; color: #a54d30; }
+.trip-checklist-add { display: flex; gap: 8px; margin-top: 16px; }
+.trip-checklist-add input { min-width: 0; flex: 1; padding: 10px 12px; border: 1px solid #dce9e6; border-radius: 10px; color: #173f48; font: inherit; font-size: 12px; }
+.trip-checklist-add button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 13px; border: 0; border-radius: 10px; background: #0b6971; color: #fff; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.trip-checklist-add button:disabled { opacity: .5; cursor: not-allowed; }
+.trip-checklist-save-note { margin: 11px 0 0; color: #9a6a32; font-size: 11px; }
 .restaurant-suggestion-notice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 14px; padding: 15px 18px; border: 1px solid #c8e3dd; border-radius: 12px; background: #eff8f5; color: #164e4d; }
 .restaurant-suggestion-notice > div { display: grid; gap: 3px; }
 .restaurant-suggestion-notice strong { font-size: 13px; }
@@ -756,6 +778,10 @@
   .style-options { grid-template-columns: 1fr; }
   .banner-inner { flex-direction: column; align-items: flex-start; }
   .itinerary-layout { grid-template-columns: 1fr; }
+  .trip-checklist { padding: 18px 16px; }
+  .trip-checklist-groups { grid-template-columns: 1fr; gap: 12px; }
+  .trip-checklist-add { flex-direction: column; }
+  .trip-checklist-add button { min-height: 40px; }
   .trip-weather-card { grid-template-columns: 1fr 1fr; }
   .weather-condition { grid-column: 1 / -1; }
   .weather-temperature { border-right: 0; }

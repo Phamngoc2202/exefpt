@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  ArrowLeft, ArrowRight, CalendarDays, Check, CircleDollarSign, Clock3, Compass,
+  ArrowLeft, ArrowRight, CalendarDays, Check, CheckSquare, CircleDollarSign, Clock3, Compass,
   Hotel, Landmark, Map, MapPin, Mountain, Navigation, Pencil, Plus, RefreshCw, Save,
   Share2, Sparkles, Ticket, TrainFront, Trash2, Users, Utensils, WalletCards, X, Printer,
 } from 'lucide-react'
@@ -27,6 +27,52 @@ const budgetRows = [
 const activityIcons = { food: Utensils, hotel: Hotel, transport: Navigation, place: Landmark, nature: Mountain }
 const formatMoney = (value) => `${new Intl.NumberFormat('vi-VN').format(value)}đ`
 const aiDaySuggestions = ['Nhẹ nhàng hơn', 'Giảm chi phí', 'Ưu tiên chụp ảnh', 'Thêm trải nghiệm địa phương']
+const checklistCategories = ['Giấy tờ & đặt chỗ', 'Đồ dùng cá nhân', 'Trước ngày khởi hành', 'Tùy chọn']
+
+function TripChecklist({ items, onChange, saved, saving }) {
+  const [newItem, setNewItem] = useState('')
+  const completed = items.filter((item) => item.done).length
+  const addItem = (event) => {
+    event.preventDefault()
+    const title = newItem.trim()
+    if (!title) return
+    onChange([...items, {
+      id: `custom-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`,
+      title: title.slice(0, 120), category: 'Tùy chọn', done: false, custom: true,
+    }])
+    setNewItem('')
+  }
+  const updateItem = (id, changes) => onChange(items.map((item) => item.id === id ? { ...item, ...changes } : item))
+
+  return <section className="trip-checklist" aria-labelledby="trip-checklist-title">
+    <header className="trip-checklist-heading">
+      <span className="trip-checklist-icon"><CheckSquare size={21} /></span>
+      <div><h2 id="trip-checklist-title">Checklist trước chuyến đi</h2><p>{completed}/{items.length} mục đã hoàn thành</p></div>
+      <span className="trip-checklist-progress-label">{items.length ? Math.round(completed / items.length * 100) : 0}%</span>
+    </header>
+    <div className="trip-checklist-progress" role="progressbar" aria-label="Tiến độ checklist" aria-valuemin="0" aria-valuemax={items.length || 1} aria-valuenow={completed}>
+      <span style={{ width: `${items.length ? completed / items.length * 100 : 0}%` }} />
+    </div>
+    <div className="trip-checklist-groups">
+      {checklistCategories.map((category) => {
+        const categoryItems = items.filter((item) => item.category === category)
+        if (!categoryItems.length) return null
+        return <section className="trip-checklist-group" key={category}>
+          <h3>{category}</h3>
+          <ul>{categoryItems.map((item) => <li key={item.id} className={item.done ? 'is-done' : ''}>
+            <label><input type="checkbox" checked={item.done} onChange={(event) => updateItem(item.id, { done: event.target.checked })} /><span>{item.title}</span></label>
+            {item.custom && <button type="button" onClick={() => onChange(items.filter((entry) => entry.id !== item.id))} aria-label={`Xóa mục ${item.title}`}><Trash2 size={15} /></button>}
+          </li>)}</ul>
+        </section>
+      })}
+    </div>
+    <form className="trip-checklist-add" onSubmit={addItem}>
+      <input value={newItem} onChange={(event) => setNewItem(event.target.value)} maxLength="120" placeholder="Thêm việc cần chuẩn bị..." aria-label="Mục checklist mới" />
+      <button type="submit" disabled={!newItem.trim() || saving}><Plus size={16} /> Thêm mục</button>
+    </form>
+    {!saved && <p className="trip-checklist-save-note">Checklist có thay đổi chưa lưu. Bấm “Lưu thay đổi” ở đầu trang để giữ lại.</p>}
+  </section>
+}
 
 export function CreateTripPage({ form, setForm, onGenerate, formError, onBack, generating = false, tripQuota, needsLogin = false, onSeePlans }) {
   const destination = findDestination(form.destination)
@@ -169,7 +215,7 @@ function ActivityEditor({ activity, onChange, onDone, onDelete }) {
   )
 }
 
-export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpdateActivity, onAddActivity, onDeleteActivity, onAiRefineDay, aiRefiningDay, onSuggestRestaurants, suggestingRestaurants, onDelete, deleting, onCreateShare, onRevokeShare }) {
+export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpdateActivity, onAddActivity, onDeleteActivity, onAiRefineDay, aiRefiningDay, onSuggestRestaurants, suggestingRestaurants, onDelete, deleting, onCreateShare, onRevokeShare, onUpdateChecklist }) {
   const [activeDay, setActiveDay] = useState(1)
   const [editingId, setEditingId] = useState(null)
   const [aiPanelOpen, setAiPanelOpen] = useState(false)
@@ -214,6 +260,7 @@ export function ItineraryPage({ plan, onSave, saved, saving, onRegenerate, onUpd
       <div className="page-shell itinerary-layout">
         <div className="itinerary-main">
           <BudgetPanel plan={plan} className="itinerary-budget-primary" />
+          <TripChecklist items={plan.checklist || []} onChange={onUpdateChecklist} saved={saved} saving={saving} />
           <div className="day-tabs">{plan.days.map((day) => <button className={dayData.day === day.day ? 'active' : ''} onClick={() => { setActiveDay(day.day); setEditingId(null); setAiPanelOpen(false); setAiInstruction('') }} key={day.date}><span>Ngày {day.day}</span><small>{formatTripDate(day.date, { day: '2-digit', month: 'short' })}</small></button>)}</div>
           <TripWeather city={dayDestination} coordinates={destination?.coordinates} date={dayData.date} />
           <section className="timeline-card">

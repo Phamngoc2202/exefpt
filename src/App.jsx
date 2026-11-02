@@ -540,7 +540,7 @@ export default function App() {
         return meal ? { ...activity, title: meal.title, location: meal.location, source: meal.source, sourceUrl: meal.sourceUrl, placeId: meal.placeId, note: meal.note } : activity
       }),
     }))
-    setPlan({ ...regenerated, id: plan.id, generationEventId: plan.generationEventId })
+    setPlan({ ...regenerated, id: plan.id, generationEventId: plan.generationEventId, checklist: plan.checklist })
     setSaved(false)
     setToast('Đã tạo lại lịch trình. Hãy kiểm tra và lưu nếu muốn giữ bản mới.')
   }
@@ -621,6 +621,10 @@ export default function App() {
     setSaved(true)
     setToast('Đã lưu lịch trình và chi phí vào Supabase!')
     return true
+  }
+  const handleUpdateChecklist = (checklist) => {
+    setPlan((current) => current ? { ...current, checklist } : current)
+    setSaved(false)
   }
   const handleSuggestRestaurants = async () => {
     if (!plan?.id || suggestingRestaurants) return
@@ -733,7 +737,7 @@ export default function App() {
       {page === 'destination' && <DestinationDetailPage city={selectedDestination} onBack={() => goTo('home')} onPlan={handlePlanDestination} />}
       {page === 'shared' && <SharedTripPage state={sharedTripState} onCreateOwn={() => goTo('create')} onBackHome={() => goTo('home')} />}
       {page === 'create' && <CreateTripPage form={form} setForm={updateForm} onGenerate={handleGenerate} formError={formError} onBack={() => goTo('home')} generating={generating} tripQuota={tripQuota} needsLogin={!session} onSeePlans={() => goTo('pricing')} />}
-      {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onAiRefineDay={handleAiRefineDay} aiRefiningDay={aiRefiningDay} onSuggestRestaurants={handleSuggestRestaurants} suggestingRestaurants={suggestingRestaurants} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} onCreateShare={handleCreateShare} onRevokeShare={handleRevokeShare} />}
+      {page === 'itinerary' && plan && <ItineraryPage key={plan.id || plan.form.destination + plan.form.startDate + plan.form.endDate} plan={plan} onSave={handleSave} saved={saved} saving={saving} onRegenerate={handleRegenerate} onUpdateActivity={handleUpdateActivity} onAddActivity={handleAddActivity} onDeleteActivity={handleDeleteActivity} onAiRefineDay={handleAiRefineDay} aiRefiningDay={aiRefiningDay} onSuggestRestaurants={handleSuggestRestaurants} suggestingRestaurants={suggestingRestaurants} onDelete={() => handleDeleteTrip(plan)} deleting={deletingId === plan.id} onCreateShare={handleCreateShare} onRevokeShare={handleRevokeShare} onUpdateChecklist={handleUpdateChecklist} />}
       {page === 'trips' && <TripsPage trips={trips} goTo={goTo} onOpen={handleOpenTrip} onDelete={handleDeleteTrip} deletingId={deletingId} />}
       {page === 'pricing' && <PricingPage goTo={goTo} tripQuota={tripQuota} session={session} onLogin={openLogin} onPaymentSuccess={() => refreshTripQuota(session.user.id)} />}
       {page === 'admin' && (isAdmin ? <AdminPage currentUserId={session.user.id} /> : <main className="page-shell inner-page"><h1>Không có quyền truy cập</h1><p>Vui lòng đăng nhập bằng tài khoản quản trị.</p></main>)}

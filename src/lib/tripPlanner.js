@@ -4,6 +4,20 @@ import { findDeparturePoint } from '../data/departurePoints.js'
 export const MAX_TRIP_DAYS = 5
 export const COST_CATEGORIES = ['Di chuyển', 'Lưu trú', 'Ăn uống', 'Hoạt động']
 
+export function createDefaultChecklist() {
+  return [
+    { id: 'identity-documents', title: 'Kiểm tra CCCD và giấy tờ tùy thân', category: 'Giấy tờ & đặt chỗ', done: false },
+    { id: 'transport-tickets', title: 'Xác nhận vé và giờ khởi hành', category: 'Giấy tờ & đặt chỗ', done: false },
+    { id: 'accommodation', title: 'Xác nhận nơi lưu trú', category: 'Giấy tờ & đặt chỗ', done: false },
+    { id: 'cash-bank', title: 'Chuẩn bị tiền mặt và phương thức thanh toán', category: 'Đồ dùng cá nhân', done: false },
+    { id: 'clothes', title: 'Chuẩn bị quần áo phù hợp thời tiết', category: 'Đồ dùng cá nhân', done: false },
+    { id: 'medicine', title: 'Mang thuốc cá nhân và đồ sơ cứu', category: 'Đồ dùng cá nhân', done: false },
+    { id: 'charger', title: 'Mang điện thoại, sạc và pin dự phòng', category: 'Đồ dùng cá nhân', done: false },
+    { id: 'check-weather', title: 'Kiểm tra thời tiết trước khi đi', category: 'Trước ngày khởi hành', done: false },
+    { id: 'download-documents', title: 'Lưu vé và thông tin đặt chỗ để dùng khi cần', category: 'Trước ngày khởi hành', done: false },
+  ]
+}
+
 export function activityTypeForCategory(category, preferredType = 'place') {
   if (category === 'Di chuyển') return 'transport'
   if (category === 'Lưu trú') return 'hotel'
@@ -233,7 +247,7 @@ export function generatePlan(form, options = {}) {
     return { day, date, label: options.labelsByDay?.[day] || (isFirst ? 'Khởi hành và khám phá' : isLast ? 'Khám phá và trở về' : 'Khám phá theo sở thích'), activities }
   })
 
-  return { id: null, form: { ...form, travelers }, days }
+  return { id: null, form: { ...form, travelers }, days, checklist: createDefaultChecklist() }
 }
 
 export function summarizePlan(plan) {
@@ -283,7 +297,17 @@ export function planFromRow(row) {
       }
     }),
   }))
-  return { id: row.id, generationEventId: row.generation_event_id || null, form, days }
+  const checklist = Array.isArray(stored?.tripChecklist)
+    ? stored.tripChecklist.filter((item) => item && typeof item.title === 'string').map((item) => ({
+      id: String(item.id || `check-${item.title}`),
+      title: item.title.trim().slice(0, 120),
+      category: ['Giấy tờ & đặt chỗ', 'Đồ dùng cá nhân', 'Trước ngày khởi hành', 'Tùy chọn'].includes(item.category)
+        ? item.category : 'Tùy chọn',
+      done: item.done === true,
+      custom: item.custom === true,
+    })).filter((item) => item.title)
+    : createDefaultChecklist()
+  return { id: row.id, generationEventId: row.generation_event_id || null, form, days, checklist }
 }
 
 export function toTripPayload(plan, userId) {
@@ -292,7 +316,7 @@ export function toTripPayload(plan, userId) {
     user_id: userId, generation_event_id: plan.generationEventId || null,
     destination: form.destination, start_date: form.startDate, end_date: form.endDate,
     budget: form.budget, travel_with: form.travelWith, travel_style: form.style,
-    interests: form.interests, itinerary: { version: 2, origin: form.origin, travelers: form.travelers, specialRequest: form.specialRequest || '', days: plan.days },
+    interests: form.interests, itinerary: { version: 2, origin: form.origin, travelers: form.travelers, specialRequest: form.specialRequest || '', days: plan.days, tripChecklist: plan.checklist || createDefaultChecklist() },
     budget_plan: summarizePlan(plan),
   }
 }

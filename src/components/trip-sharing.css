@@ -79,17 +79,25 @@
 .shared-trip-state h1 { margin: 8px 0 0; font-size: 35px; }
 .shared-trip-state p { max-width: 480px; margin: 0 0 13px; color: #6d8589; }
 .shared-trip-state button { border: 0; background: #087b82; }
+.trip-document-checklist { margin: 18px 0; padding: 17px 22px; border: 1px solid #dcebe7; border-radius: 12px; background: #f6faf8; }
+.trip-document-checklist header { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; color: #17484e; }
+.trip-document-checklist header strong { font-size: 14px; }
+.trip-document-checklist header small { color: #6c8584; font-size: 10px; }
+.trip-document-checklist ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 18px; margin: 12px 0 0; padding: 0; list-style: none; }
+.trip-document-checklist li { display: flex; gap: 7px; color: #496566; font-size: 10px; line-height: 1.5; }
+.trip-document-checklist li span:first-child { color: #087e83; font-weight: 900; }
 
 @media (max-width: 700px) {
   .share-dialog { padding: 30px 19px 22px; }
   .share-link-field { grid-template-columns: auto minmax(0,1fr); }
   .share-link-field button { grid-column: 1 / -1; justify-content: center; }
   .share-dialog-actions { align-items: flex-start; flex-direction: column; }
-  .trip-document-header, .trip-document-title, .trip-document-request, .trip-document-budget, .trip-document-days { padding-inline: 18px; }
+  .trip-document-header, .trip-document-title, .trip-document-request, .trip-document-budget, .trip-document-days, .trip-document-checklist { padding-inline: 18px; }
   .trip-document-budget { grid-template-columns: 1fr; }
   .trip-document-budget-grid { grid-template-columns: repeat(2, 1fr); }
   .trip-document-day > div > article { grid-template-columns: 42px 9px minmax(0,1fr); }
   .trip-document-day article > b { grid-column: 3; }
+  .trip-document-checklist ul { grid-template-columns: 1fr; }
 }
 
 @media print {
@@ -102,6 +110,7 @@
   .printable-trip-document { display: block !important; }
   .trip-document { border: 0; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .trip-document-title { padding: 24px; }
+  .trip-document-checklist { margin-inline: 22px; page-break-inside: avoid; }
   .trip-document-title h1 { font-size: 48px; }
   .trip-document-budget, .trip-document-days { padding-inline: 22px; }
   .trip-document-day { page-break-inside: avoid; }
