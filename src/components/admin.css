@@ -109,6 +109,7 @@
 .admin-credit-cell input { width: 55px; padding: 7px; border: 1px solid #d4e5e3; border-radius: 8px; font: inherit; }
 .admin-credit-cell button { padding: 7px 10px; border: 0; border-radius: 8px; background: #0b6971; color: white; font: inherit; font-weight: 800; cursor: pointer; white-space: nowrap; }
 .admin-credit-cell button:disabled { opacity: .5; cursor: not-allowed; }
+.admin-credit-cell .admin-credit-set-button { border: 1px solid #cde4df; background: #e9f5f2; color: #0b6971; }
 .admin-table .admin-empty { display: table-cell; padding: 32px; text-align: center; color: #789094; }
 .admin-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 15px 25px; border-top: 1px solid #e8f0ef; color: #6a8589; font-size: 12px; }
 .admin-pagination > div { display: flex; gap: 7px; }

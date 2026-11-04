@@ -30,6 +30,7 @@ export default function AdminPage({ currentUserId }) {
   const [updatingId, setUpdatingId] = useState(null)
   const [feedback, setFeedback] = useState(null)
   const [grantAmounts, setGrantAmounts] = useState({})
+  const [remainingAmounts, setRemainingAmounts] = useState({})
   const [payments, setPayments] = useState({})
   const [usageSummaries, setUsageSummaries] = useState({})
   const [usageAnalytics, setUsageAnalytics] = useState(null)
@@ -213,6 +214,36 @@ export default function AdminPage({ currentUserId }) {
     }
   }
 
+  const setRemainingCredits = async (user) => {
+    if (updatingId) return
+    const rawAmount = remainingAmounts[user.id] ?? summarizeTripQuota(user).remaining
+    const amount = Number(rawAmount)
+    if (String(rawAmount).trim() === '' || !Number.isInteger(amount) || amount < 0 || amount > 1000) {
+      setFeedback({ type: 'error', text: 'Số lượt còn lại phải là số nguyên từ 0 đến 1.000.' })
+      return
+    }
+    if (!window.confirm(`Đặt tổng lượt tạo còn lại của ${user.email || 'tài khoản này'} thành ${amount} lượt?`)) return
+    setUpdatingId(user.id)
+    setFeedback(null)
+    try {
+      const { error } = await supabase.rpc('admin_set_user_trip_quota', {
+        p_user_id: user.id,
+        p_remaining: amount,
+      })
+      if (error) throw error
+      const { data, error: reloadError } = await supabase.from('app_users')
+        .select('id,generations_used,bonus_generations').eq('id', user.id).single()
+      if (reloadError) throw reloadError
+      setUsers((current) => current.map((item) => item.id === user.id ? { ...item, ...data } : item))
+      setRemainingAmounts((current) => ({ ...current, [user.id]: String(summarizeTripQuota(data).remaining) }))
+      setFeedback({ type: 'success', text: `Đã đặt tổng lượt còn lại thành ${amount} cho ${user.email || 'tài khoản'}.` })
+    } catch {
+      setFeedback({ type: 'error', text: 'Không điều chỉnh được lượt. Hãy chạy admin_quota_adjustment.sql trong Supabase rồi thử lại.' })
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return <main className="admin-page inner-page">
@@ -252,7 +283,7 @@ export default function AdminPage({ currentUserId }) {
             <td>{payment?.purchaseCount ? <div className="admin-purchases"><strong>{payment.purchaseCount} lần mua qua SePay</strong><div>{Object.entries(payment.plans).map(([planKey, plan]) => <span key={planKey}>{paymentPlans[planKey]?.name || planKey} ×{plan.purchaseCount}</span>)}</div>{payment.lastPaidAt && <small>Mới nhất: {new Date(payment.lastPaidAt).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</small>}</div> : null}{payment?.demoPurchaseCount ? <div className="admin-purchases admin-demo-purchases"><strong>{payment.demoPurchaseCount} gói mẫu</strong><div>{Object.entries(payment.demoPlans).map(([planKey, plan]) => <span key={planKey}>{paymentPlans[planKey]?.name || planKey} ×{plan.purchaseCount}</span>)}</div></div> : null}{!payment?.purchaseCount && !payment?.demoPurchaseCount && <span className="admin-no-purchases">Chưa có gói</span>}</td>
             <td className="admin-spent">{money(payment?.totalSpentVnd || 0)}{payment?.demoPurchaseCount > 0 && <small>+ {money(payment.demoAmountVnd)} mẫu</small>}</td>
             <td><div className="admin-usage-cell"><strong>{formatUsageDuration(usage?.totalSeconds)}</strong><span>7 ngày: {formatUsageDuration(usage?.last7Seconds)}</span><small>Lần cuối: {lastActiveLabel(usage?.lastActiveAt)}</small></div></td>
-            <td><div className="admin-credit-cell"><strong>Còn {quota.remaining} lượt</strong><div><input type="number" min="1" max="100" step="1" aria-label={`Số lượt cấp cho ${user.email || user.id}`} value={grantAmounts[user.id] ?? 1} onChange={(event) => setGrantAmounts((current) => ({ ...current, [user.id]: event.target.value }))} disabled={updatingId !== null} /><button type="button" onClick={() => grantCredits(user)} disabled={updatingId !== null}>Cấp lượt</button></div></div></td>
+            <td><div className="admin-credit-cell"><strong>Còn {quota.remaining} lượt</strong><div><input type="number" min="1" max="100" step="1" aria-label={`Số lượt cấp cho ${user.email || user.id}`} value={grantAmounts[user.id] ?? 1} onChange={(event) => setGrantAmounts((current) => ({ ...current, [user.id]: event.target.value }))} disabled={updatingId !== null} /><button type="button" onClick={() => grantCredits(user)} disabled={updatingId !== null}>Cấp lượt</button></div><div><input type="number" min="0" max="1000" step="1" aria-label={`Tổng lượt còn lại cho ${user.email || user.id}`} value={remainingAmounts[user.id] ?? quota.remaining} onChange={(event) => setRemainingAmounts((current) => ({ ...current, [user.id]: event.target.value }))} disabled={updatingId !== null} /><button type="button" className="admin-credit-set-button" onClick={() => setRemainingCredits(user)} disabled={updatingId !== null}>Đặt còn</button></div></div></td>
             <td><select aria-label={`Vai trò của ${user.email || user.id}`} value={user.role} disabled={user.id === currentUserId || updatingId !== null} onChange={(event) => changeRole(user, event.target.value)}><option value="user">Người dùng</option><option value="admin">Quản trị viên</option></select></td>
           </tr>})}
         </tbody></table></div>
